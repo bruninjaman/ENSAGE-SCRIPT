@@ -1,6 +1,6 @@
 # ENSAGE-SCRIPT
 bruninjaman scripts
 ==============
-Hero Scripts:             | Other Scripts:          | Libraries:     | Scripts:
-:-----------              | :-----------            | :----------    | :----------- 
-Challenge_accepted.lua    | :-----------            | :----------    | 1 script            
+Scripts for Heroes:       | Scripts Ensage:         | Libraries:
+:-----------              | :-----------            | :----------
+Challenge_accepted.lua    | :-----------            | :----------            
