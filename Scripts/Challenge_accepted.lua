@@ -2,10 +2,18 @@
 -- Version 1.1
 -- 1 - Now you can't lose a duel.
 -- 2 - How it works? Press "Key_configured" and make some destruction.
--- 3 - The combo (Press The Attack -> blink-> blademail -> mordiggian -> Abyssal -> BKB (if enable) )
+-- 3 - The combo (Press The Attack -> blink-> blademail -> mjolnir -> mordiggian -> Abyssal -> BKB (if enable) )
 -- 4 - Don't lose kill's, auto "Overwhelming Odds" is used when enemy is killable.(not yet)
 -- 5 - Enjoy this script, and fell free to report any bugs.
 --                          And thanks to use my script!
+-------------------------------------------------------------------------------------------------------
+-- Changelog
+-- Version 1.0 - Saturday, January 17, 2015
+-- # Script released
+-- Version 1.1 - Saturday, January 17, 2015
+-- # Add mjollnr
+-- # (plan  to changes the visual mode) [ Learning some more ]
+-- # New Itens menu
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are if legion commander.
@@ -93,13 +101,16 @@ function Main(tick)
 			local me = entityList:GetMyHero()
 			if not me then return end
 			local active = true
+			-- Legion ultimate variable --
 			local duel = me:GetAbility(4)
+			-- Itens variables --
 			local dagger = me:FindItem("item_blink")
 			local bkb1 = me:FindItem("item_black_king_bar")
 			local armlet1 = me:FindItem("item_armlet")
 			local blademail1 = me:FindItem("item_blade_mail")
 			local abyssal1 = me:FindItem("item_abyssal_blade") 
 			local mjolnir1 = me:FindItem("item_mjollnir")
+			-- Itens Locations variables --
 			local box = drawMgr:CreateRect(1300*monitor,3*monitor, 200, 30, 0xFFFFFF30) box.visible = true
 			local duel2 = drawMgr:CreateRect(1310*monitor,10*monitor,25,20,0x000000ff) duel2.visible = false
 			local blink2 = drawMgr:CreateRect(1340*monitor,10*monitor,33,20,0x000000ff) blink2.visible = false
@@ -108,8 +119,9 @@ function Main(tick)
 			local bkb2 = drawMgr:CreateRect(1430*monitor,10*monitor,33,20,0x000000ff) bkb2.visible = false
 			local abyssal2 = drawMgr:CreateRect(1460*monitor,10*monitor,33,20,0x000000ff) abyssal2.visible = false
 			local mjolnir2 = drawMgr:CreateRect(1490*monitor,10*monitor,33,20,0x000000ff) mjolnir2.visible = false
+			-- BOX --
 			box.textureId = drawMgr:GetTextureId("NyanUI/other/CM_def")
-	
+			---------
 			if duel.level > 0 then
 				-- Duel image --
 				duel2.textureId = drawMgr:GetTextureId("NyanUI/spellicons/legion_commander_duel")
