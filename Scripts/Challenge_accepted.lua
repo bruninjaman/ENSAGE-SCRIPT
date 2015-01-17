@@ -1,4 +1,5 @@
 --<<Challenge Accepted, Legion commander script! By Bruninjaman>>
+-- Version 1.1
 -- 1 - Now you can't lose a duel.
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo (Press The Attack -> blink-> blademail -> mordiggian -> Abyssal -> BKB (if enable) )
@@ -96,12 +97,16 @@ function Main(tick)
 			local armlet1 = me:FindItem("item_armlet")
 			local blademail1 = me:FindItem("item_blade_mail")
 			local abyssal1 = me:FindItem("item_abyssal_blade") 
+			local mjolnir1 = me:FindItem("item_mjollnir")
 			local duel2 = drawMgr:CreateRect(-15,-70,25,20,0x000000ff) duel2.visible = false
 			local blink2 = drawMgr:CreateRect(-45,-70,35,20,0x000000ff) blink2.visible = false
 			local armlet2 = drawMgr:CreateRect(15,-70,35,20,0x000000ff) armlet2.visible = false
 			local blademail2 = drawMgr:CreateRect(45,-70,35,20,0x000000ff) blademail2.visible = false
 			local bkb2 = drawMgr:CreateRect(75,-70,35,20,0x000000ff) bkb2.visible = false
 			local abyssal2 = drawMgr:CreateRect(105,-70,35,20,0x000000ff) abyssal2.visible = false
+			local mjolnir2 = drawMgr:CreateRect(135,-70,35,20,0x000000ff) mjolnir2.visible = false
+			mjolnir2.entity = me 
+			mjolnir2.entityPosition = Vector(0,0,me.healthbarOffset)
 			abyssal2.entity = me 
 			abyssal2.entityPosition = Vector(0,0,me.healthbarOffset)
 			duel2.entity = me 
@@ -119,6 +124,13 @@ function Main(tick)
 				-- Duel image --
 				duel2.textureId = drawMgr:GetTextureId("NyanUI/spellicons/legion_commander_duel")
 				duel2.visible = active
+				-- Mjolnir image --
+				if mjolnir1 then
+					mjolnir2.textureId = drawMgr:GetTextureId("NyanUI/items/mjollnir")
+					mjolnir2.visible = active
+				else
+					armlet2.visible = false
+				end
 				-- BKB image --
 				if bkb1 then
 					bkb2.textureId = drawMgr:GetTextureId("NyanUI/items/black_king_bar")
@@ -170,6 +182,7 @@ function Main(tick)
 	local blademail = me:FindItem("item_blade_mail")
 	local bkb1 = me:FindItem("item_black_king_bar")
 	local abyssal =  me:FindItem("item_abyssal_blade")
+	local mjolnir = me:FindItem("item_mjollnir")
 	
 	
 	--SUPER COMBO
@@ -180,12 +193,14 @@ function Main(tick)
 			if (key1==key2) and bkb1 then
 				me:SafeCastItem("item_black_king_bar")
 			end
-			if abyssal then
-				Sleep(200)
-				me:CastAbility(abyssal,victim)
+			if mjolnir then
+				me:CastAbility(mjolnir,me)
 			end
 			if armlet then
 				me:SafeCastItem("item_armlet")
+			end
+			if abyssal then
+				me:CastAbility(abyssal,victim)
 			end
 			if blademail then
 				me:SafeCastItem("item_blade_mail")
@@ -199,8 +214,10 @@ function Main(tick)
 				me:SafeCastItem("item_black_king_bar")
 			end
 			if abyssal then
-				Sleep(200)
 				me:CastAbility(abyssal,victim)
+			end
+			if mjolnir then
+				me:CastAbility(mjolnir,me)
 			end
 			if armlet then
 				me:SafeCastItem("item_armlet")
