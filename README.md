@@ -1,2 +1,6 @@
 # ENSAGE-SCRIPT
-1 - Legion Commander: Challenge_Accepted
+bruninjaman scripts
+==============
+Hero Scripts:             | Other Scripts:          | Libraries:
+:-----------              | :-----------            | :----------
+Challenge_accepted.lua    | :-----------            | :----------                
