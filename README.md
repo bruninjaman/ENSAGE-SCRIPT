@@ -3,4 +3,4 @@ bruninjaman scripts
 ==============
 Hero Scripts:             | Other Scripts:          | Libraries:     | Scripts:
 :-----------              | :-----------            | :----------    | :----------- 
-Challenge_accepted.lua    | :-----------            | :----------    |      1            
+Challenge_accepted.lua    | :-----------            | :----------    | 1 script            
