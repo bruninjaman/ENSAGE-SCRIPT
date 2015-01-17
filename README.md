@@ -1,3 +1,2 @@
 # ENSAGE-SCRIPT
-LIST:
-1 - Legion Commander Script -> Challenge_Accepted
+1 - Legion Commander: Challenge_Accepted
