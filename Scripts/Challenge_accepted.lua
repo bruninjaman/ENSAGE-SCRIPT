@@ -85,6 +85,8 @@ function Key(msg,code)
 	end
 	
 end
+-- variables count --
+local count = 0
 --Start Combo
 function Main(tick)
 	-- Images
@@ -98,27 +100,15 @@ function Main(tick)
 			local blademail1 = me:FindItem("item_blade_mail")
 			local abyssal1 = me:FindItem("item_abyssal_blade") 
 			local mjolnir1 = me:FindItem("item_mjollnir")
-			local duel2 = drawMgr:CreateRect(-15,-70,25,20,0x000000ff) duel2.visible = false
-			local blink2 = drawMgr:CreateRect(-45,-70,35,20,0x000000ff) blink2.visible = false
-			local armlet2 = drawMgr:CreateRect(15,-70,35,20,0x000000ff) armlet2.visible = false
-			local blademail2 = drawMgr:CreateRect(45,-70,35,20,0x000000ff) blademail2.visible = false
-			local bkb2 = drawMgr:CreateRect(75,-70,35,20,0x000000ff) bkb2.visible = false
-			local abyssal2 = drawMgr:CreateRect(105,-70,35,20,0x000000ff) abyssal2.visible = false
-			local mjolnir2 = drawMgr:CreateRect(135,-70,35,20,0x000000ff) mjolnir2.visible = false
-			mjolnir2.entity = me 
-			mjolnir2.entityPosition = Vector(0,0,me.healthbarOffset)
-			abyssal2.entity = me 
-			abyssal2.entityPosition = Vector(0,0,me.healthbarOffset)
-			duel2.entity = me 
-			duel2.entityPosition = Vector(0,0,me.healthbarOffset)
-			blink2.entity = me 
-			blink2.entityPosition = Vector(0,0,me.healthbarOffset)
-			armlet2.entity = me 
-			armlet2.entityPosition = Vector(0,0,me.healthbarOffset)
-			blademail2.entity = me 
-			blademail2.entityPosition = Vector(0,0,me.healthbarOffset)
-			bkb2.entity = me 
-			bkb2.entityPosition = Vector(0,0,me.healthbarOffset)
+			local box = drawMgr:CreateRect(1300*monitor,3*monitor, 200, 30, 0xFFFFFF30) box.visible = true
+			local duel2 = drawMgr:CreateRect(1310*monitor,10*monitor,25,20,0x000000ff) duel2.visible = false
+			local blink2 = drawMgr:CreateRect(1340*monitor,10*monitor,33,20,0x000000ff) blink2.visible = false
+			local armlet2 = drawMgr:CreateRect(1370*monitor,10*monitor,33,20,0x000000ff) armlet2.visible = false
+			local blademail2 = drawMgr:CreateRect(1400*monitor,10*monitor,33,20,0x000000ff) blademail2.visible = false
+			local bkb2 = drawMgr:CreateRect(1430*monitor,10*monitor,33,20,0x000000ff) bkb2.visible = false
+			local abyssal2 = drawMgr:CreateRect(1460*monitor,10*monitor,33,20,0x000000ff) abyssal2.visible = false
+			local mjolnir2 = drawMgr:CreateRect(1490*monitor,10*monitor,33,20,0x000000ff) mjolnir2.visible = false
+			box.textureId = drawMgr:GetTextureId("NyanUI/other/CM_def")
 	
 			if duel.level > 0 then
 				-- Duel image --
