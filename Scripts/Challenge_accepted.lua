@@ -1,5 +1,5 @@
 --<<Challenge Accepted, Legion commander script! By Bruninjaman>>
--- Version 1.1
+-- Version 1.2
 -- 1 - Now you can't lose a duel.
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo (Press The Attack -> blink-> blademail -> mjolnir -> mordiggian -> Abyssal -> BKB (if enable) )
