@@ -14,6 +14,12 @@
 -- # Add mjollnr
 -- # (plan  to changes the visual mode) [ Learning some more ]
 -- # New Itens menu
+-- Version 1.2 - Sunday, January 18, 2015
+-- # Fixed "attempt a nil value" bug
+-- # Fixed choose another hero
+-- # Fixed FPS Reduction (not tested)
+-- # Fixed  check items and spells cd (Trying to fixe always use Abyssal blade.)
+-- # Menu Beta (it will be better on the future)
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are if legion commander.
@@ -47,17 +53,6 @@ local x,y = 1150, 50
 local monitor = client.screenSize.x/1600
 local F14 = drawMgr:CreateFont("F14","Franklin Gothic Medium",17,800) 
 local statusText = drawMgr:CreateText(x*monitor,y*monitor,-1,"Legion Commander - BKB Disabled! - (" .. string.char(toggleKey) .. ")   AutoCombo - (" .. string.char(BlinkComboKey) .. ")",F14) statusText.visible = false
--- Marked for death visual --
-function tick(tick)
-	local target = targetFind:GetClosestToMouse(100)
-	if target then
-		ikillyou.visible = true
-		ikillyou.entity = target
-		ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
-	else
-		ikillyou.visible = false
-	end
-end
 -- When you start the game (check hero)
 function onLoad()
 	if PlayingGame() then
@@ -68,8 +63,22 @@ function onLoad()
 			registered = true
 			statusText.visible = true 
 			script:RegisterEvent(EVENT_TICK,Main)
+			script:RegisterEvent(EVENT_TICK,tick)
 			script:RegisterEvent(EVENT_KEY,Key)
 			script:UnregisterEvent(onLoad)
+		end
+	end
+end
+-- Marked for death visual --
+function tick(tick)
+	if PlayingGame() then
+		local target = targetFind:GetClosestToMouse(100)
+		if target then
+			ikillyou.visible = true
+			ikillyou.entity = target
+			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
+		else
+			ikillyou.visible = false
 		end
 	end
 end
@@ -93,9 +102,16 @@ function Key(msg,code)
 	end
 	
 end
--- variables count --
-local count = 0
 --Start Combo
+-- Itens Locations variables --
+local box = drawMgr:CreateRect(1300*monitor,3*monitor, 225*monitor, 30*monitor, 0xFFFFFF30) box.visible = false
+local duel2 = drawMgr:CreateRect(1310*monitor,9*monitor,25*monitor,20*monitor,0x000000ff) duel2.visible = false	
+local blink2 = drawMgr:CreateRect(1340*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) blink2.visible = false	
+local armlet2 = drawMgr:CreateRect(1370*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) armlet2.visible = false
+local blademail2 = drawMgr:CreateRect(1400*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) blademail2.visible = false
+local bkb2 = drawMgr:CreateRect(1430*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) bkb2.visible = false
+local abyssal2 = drawMgr:CreateRect(1460*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) abyssal2.visible = false
+local mjolnir2 = drawMgr:CreateRect(1490*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) mjolnir2.visible = false
 function Main(tick)
 	-- Images
 			local me = entityList:GetMyHero()
@@ -110,19 +126,11 @@ function Main(tick)
 			local blademail1 = me:FindItem("item_blade_mail")
 			local abyssal1 = me:FindItem("item_abyssal_blade") 
 			local mjolnir1 = me:FindItem("item_mjollnir")
-			-- Itens Locations variables --
-			local box = drawMgr:CreateRect(1300*monitor,3*monitor, 200, 30, 0xFFFFFF30) box.visible = true
-			local duel2 = drawMgr:CreateRect(1310*monitor,10*monitor,25,20,0x000000ff) duel2.visible = false
-			local blink2 = drawMgr:CreateRect(1340*monitor,10*monitor,33,20,0x000000ff) blink2.visible = false
-			local armlet2 = drawMgr:CreateRect(1370*monitor,10*monitor,33,20,0x000000ff) armlet2.visible = false
-			local blademail2 = drawMgr:CreateRect(1400*monitor,10*monitor,33,20,0x000000ff) blademail2.visible = false
-			local bkb2 = drawMgr:CreateRect(1430*monitor,10*monitor,33,20,0x000000ff) bkb2.visible = false
-			local abyssal2 = drawMgr:CreateRect(1460*monitor,10*monitor,33,20,0x000000ff) abyssal2.visible = false
-			local mjolnir2 = drawMgr:CreateRect(1490*monitor,10*monitor,33,20,0x000000ff) mjolnir2.visible = false
 			-- BOX --
 			box.textureId = drawMgr:GetTextureId("NyanUI/other/CM_def")
 			---------
-			if duel.level > 0 then
+			if duel.level > 0 and registered then
+				box.visible = active
 				-- Duel image --
 				duel2.textureId = drawMgr:GetTextureId("NyanUI/spellicons/legion_commander_duel")
 				duel2.visible = active
@@ -195,14 +203,14 @@ function Main(tick)
 			if (key1==key2) and bkb1 then
 				me:SafeCastItem("item_black_king_bar")
 			end
-			if mjolnir then
+			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY then
 				me:CastAbility(mjolnir,me)
 			end
 			if armlet then
 				me:SafeCastItem("item_armlet")
 			end
-			if abyssal then
-				me:CastAbility(abyssal,victim)
+			if abyssal and abyssal.state == LuaEntityItem.STATE_READY then
+				me:CastItem("item_abyssal_blade",victim)
 			end
 			if blademail then
 				me:SafeCastItem("item_blade_mail")
@@ -215,10 +223,10 @@ function Main(tick)
 			if (key1==key2) and bkb1 then
 				me:SafeCastItem("item_black_king_bar")
 			end
-			if abyssal then
-				me:CastAbility(abyssal,victim)
+			if abyssal and abyssal.state == LuaEntityItem.STATE_READY then
+				me:CastItem("item_abyssal_blade",victim)
 			end
-			if mjolnir then
+			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY then
 				me:CastAbility(mjolnir,me)
 			end
 			if armlet then
@@ -244,12 +252,20 @@ function onClose()
 	collectgarbage("collect")
 	if registered then
 	    statusText.visible = false
+		box.visible = false
+		duel2.visible = false	
+		blink2.visible = false	
+		armlet2.visible = false
+		blademail2.visible = false
+		bkb2.visible = false
+		abyssal2.visible = false
+		mjolnir2.visible = false
 		script:UnregisterEvent(Main)
+		script:UnregisterEvent(tick)
 		script:UnregisterEvent(Key)
 		registered = false
 	end
 end
-
 script:RegisterEvent(EVENT_CLOSE,onClose)
 script:RegisterEvent(EVENT_TICK,onLoad)
 script:RegisterEvent(EVENT_TICK,tick)
