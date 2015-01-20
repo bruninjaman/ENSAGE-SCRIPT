@@ -139,7 +139,7 @@ function Main(tick)
 				return
 			end
 			-- Blink action --
-			if blink:CanBeCasted() then
+			if blink and blink:CanBeCasted() then
 				me:CastAbility(blink,target.position)
 				Sleep(100+me:GetTurnTime(target)*1000)
 				return
