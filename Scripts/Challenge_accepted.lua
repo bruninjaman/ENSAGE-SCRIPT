@@ -17,15 +17,19 @@
 -- Version 1.2 - Sunday, January 18, 2015
 -- # Fixed "attempt a nil value" bug
 -- # Fixed choose another hero
--- # Fixed FPS Reduction (not tested)
+-- # Fixed FPS Reduction (not tested)[FAILED]
 -- # Fixed  check items and spells cd (Trying to fixe always use Abyssal blade.)
 -- # Menu Beta (it will be better on the future)
 -- Version 1.3 - Monday, January 19, 2015
--- # Fixed FPS Reduction, now it's really fixed.
+-- # Fixed FPS Reduction [FAILED].
 -- # Added Medallion, Mask of madness and Halberd
 -- # Fixed allways use Abyssal blade (thank you Moones)
 -- # Fixed CD time before ultimate (now is instant ultimate)
 -- # Menu Will be fixed in another version( but it doesn't is a problem).
+-- Version 1.4 - Tuesday, January 20, 2015
+-- # Fixed FPS reduction [Beta]
+-- # Added CanBeCasted() and CanCast() and some sleep().
+-- # Removed itens menu, it will be worked later.
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are if legion commander.
@@ -95,15 +99,6 @@ function Key(msg,code)
 	
 end
 --Start Combo
--- Itens Locations variables --
-local box = drawMgr:CreateRect(1300*monitor,3*monitor, 225*monitor, 30*monitor, 0xFFFFFF30) box.visible = false
-local duel2 = drawMgr:CreateRect(1310*monitor,9*monitor,25*monitor,20*monitor,0x000000ff) duel2.visible = false	
-local blink2 = drawMgr:CreateRect(1340*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) blink2.visible = false	
-local armlet2 = drawMgr:CreateRect(1370*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) armlet2.visible = false
-local blademail2 = drawMgr:CreateRect(1400*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) blademail2.visible = false
-local bkb2 = drawMgr:CreateRect(1430*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) bkb2.visible = false
-local abyssal2 = drawMgr:CreateRect(1460*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) abyssal2.visible = false
-local mjolnir2 = drawMgr:CreateRect(1490*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) mjolnir2.visible = false
 function Main(tick)
 	-- Visual Marked for death
 	local target = targetFind:GetClosestToMouse(100)
@@ -115,81 +110,15 @@ function Main(tick)
 			ikillyou.visible = false
 		end
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-	-- Images
-	local me = entityList:GetMyHero()
-			if not me then return end
-			local active = true
-			-- Legion ultimate variable --
-			local duel = me:GetAbility(4)
-			-- Itens variables --
-			local dagger = me:FindItem("item_blink")
-			local bkb1 = me:FindItem("item_black_king_bar")
-			local armlet1 = me:FindItem("item_armlet")
-			local blademail1 = me:FindItem("item_blade_mail")
-			local abyssal1 = me:FindItem("item_abyssal_blade") 
-			local mjolnir1 = me:FindItem("item_mjollnir")
-			-- BOX --
-			box.textureId = drawMgr:GetTextureId("NyanUI/other/CM_def")
-			---------
-			if duel.level > 0 and registered then
-				box.visible = active
-				-- Duel image --
-				duel2.textureId = drawMgr:GetTextureId("NyanUI/spellicons/legion_commander_duel")
-				duel2.visible = active
-				-- Mjolnir image --
-				if mjolnir1 then
-					mjolnir2.textureId = drawMgr:GetTextureId("NyanUI/items/mjollnir")
-					mjolnir2.visible = active
-				else
-					armlet2.visible = false
-				end
-				-- BKB image --
-				if bkb1 then
-					bkb2.textureId = drawMgr:GetTextureId("NyanUI/items/black_king_bar")
-					bkb2.visible = active
-				else
-					bkb2.visible = false
-				end
-				-- Armlet image --
-				if armlet1 then
-					armlet2.textureId = drawMgr:GetTextureId("NyanUI/items/armlet")
-					armlet2.visible = active
-				else
-					armlet2.visible = false
-				end
-				-- Blademail image --
-				if blademail1 then
-					blademail2.textureId = drawMgr:GetTextureId("NyanUI/items/blade_mail")
-					blademail2.visible = active
-				else
-					blademail2.visible = false
-				end
-				-- Abyssal Blade --
-				if abyssal1 then
-					abyssal2.textureId = drawMgr:GetTextureId("NyanUI/items/abyssal_blade")
-					abyssal2.visible = active
-				else
-					abyssal2.visible = false
-				end
-				-- Blink dagger image --
-				if dagger then
-					blink2.textureId = drawMgr:GetTextureId("NyanUI/items/blink")
-					blink2.visible = active
-				else
-					blink2.visible = false
-				end
-			end
-		-- end of images
 	if not SleepCheck() then return end
 	-- variables
 	local me = entityList:GetMyHero()
 	if not me then return end
 	
-	local victim = targetFind:GetClosestToMouse(100)
     local blink = me:FindItem("item_blink")
 	local attack = me:GetAbility(2)
 	local duel = me:GetAbility(4)
-	local distance = GetDistance2D(me,victim)
+	local distance = GetDistance2D(me,target)
 	local armlet = me:FindItem("item_armlet")
 	local blademail = me:FindItem("item_blade_mail")
 	local bkb1 = me:FindItem("item_black_king_bar")
@@ -201,93 +130,140 @@ function Main(tick)
 	
 	
 	--SUPER COMBO
-	if victim and BlinkActive and me.alive and distance < range then
-        if blink and blink:CanBeCasted() then
+	if target and BlinkActive and me.alive and distance < range then
+        if me:CanCast() then
 			-- Second Skill
-			me:CastAbility(attack,me)
-	        me:CastAbility(blink,victim.position)
+			if attack:CanBeCasted() then
+				me:CastAbility(attack,me)
+				Sleep(attack:FindCastPoint()*1000)
+				return
+			end
+			-- Blink action --
+			if blink:CanBeCasted() then
+				me:CastAbility(blink,target.position)
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
+			end
 			-- Check bkb active or inactive
-			if (key1==key2) and bkb1 then
+			if (key1==key2) and bkb1 and bkb1:CanBeCasted() then
 				me:SafeCastItem("item_black_king_bar")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- Mjolnir item
-			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY then
+			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY and mjolnir:CanBeCasted() then
 				me:CastAbility(mjolnir,me)
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- Armlet item
-			if armlet then
+			if armlet and armlet:CanBeCasted() then
 				me:SafeCastItem("item_armlet")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- madness item
-			if madness then
+			if madness and madness:CanBeCasted() then
 				me:SafeCastItem("item_mask_of_madness")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- Abyssal item
-			if abyssal and abyssal.state == LuaEntityItem.STATE_READY then
-				me:CastItem("item_abyssal_blade",victim)
+			if abyssal and abyssal.state == LuaEntityItem.STATE_READY and abyssal:CanBeCasted() then
+				me:CastItem("item_abyssal_blade",target)
 				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- halberd item
-			if halberd and halberd.state == LuaEntityItem.STATE_READY then
-				me:CastItem("item_heavens_halberd",victim)
+			if halberd and halberd.state == LuaEntityItem.STATE_READY and halberd:CanBeCasted() then
+				me:CastItem("item_heavens_halberd",target)
 				Sleep(50,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- medallion of courage item
-			if medallion and medallion.state == LuaEntityItem.STATE_READY then
-				me:CastItem("item_medallion_of_courage",victim)
+			if medallion and medallion.state == LuaEntityItem.STATE_READY and medallion:CanBeCasted() then
+				me:CastItem("item_medallion_of_courage",target)
 				Sleep(50,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- Blademail item
-			if blademail then
+			if blademail and blademail:CanBeCasted() then
 				me:SafeCastItem("item_blade_mail")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- Duel Hability item
 			if SleepCheck("duel") then
-				me:CastAbility(duel,victim)
+				me:CastAbility(duel,target)
+				Sleep(attack:FindCastPoint()*1000)
 			end
 			Sleep(50)
 		    BlinkActive = false
 		else
-			-- Second item
-			me:CastAbility(attack,me)
-			-- BKB item
-			if (key1==key2) and bkb1 then
+			-- Second Skill
+			if attack:CanBeCasted() then
+				me:CastAbility(attack,me)
+				Sleep(attack:FindCastPoint()*1000)
+				return
+			end
+			-- Check bkb active or inactive
+			if (key1==key2) and bkb1 and bkb1:CanBeCasted() then
 				me:SafeCastItem("item_black_king_bar")
-			end
-			-- Abyssal item
-			if abyssal and abyssal.state == LuaEntityItem.STATE_READY then
-				me:CastItem("item_abyssal_blade",victim)
-				Sleep(100,"duel")
-			end
-			-- halberd item
-			if halberd and halberd.state == LuaEntityItem.STATE_READY then
-				me:CastItem("item_heavens_halberd",victim)
-				Sleep(50,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- Mjolnir item
-			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY then
+			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY and mjolnir:CanBeCasted() then
 				me:CastAbility(mjolnir,me)
-			end
-			-- medallion of courage item
-			if medallion and medallion.state == LuaEntityItem.STATE_READY then
-				me:CastItem("item_medallion_of_courage",victim)
-				Sleep(50,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- Armlet item
-			if armlet then
+			if armlet and armlet:CanBeCasted() then
 				me:SafeCastItem("item_armlet")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
 			-- madness item
-			if madness then
+			if madness and madness:CanBeCasted() then
 				me:SafeCastItem("item_mask_of_madness")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
-			-- blademail item
-			if blademail then
+			-- Abyssal item
+			if abyssal and abyssal.state == LuaEntityItem.STATE_READY and abyssal:CanBeCasted() then
+				me:CastItem("item_abyssal_blade",target)
+				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
+			end
+			-- halberd item
+			if halberd and halberd.state == LuaEntityItem.STATE_READY and halberd:CanBeCasted() then
+				me:CastItem("item_heavens_halberd",target)
+				Sleep(50,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
+			end
+			-- medallion of courage item
+			if medallion and medallion.state == LuaEntityItem.STATE_READY and medallion:CanBeCasted() then
+				me:CastItem("item_medallion_of_courage",target)
+				Sleep(50,"duel")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
+			end
+			-- Blademail item
+			if blademail and blademail:CanBeCasted() then
 				me:SafeCastItem("item_blade_mail")
+				Sleep(100+me:GetTurnTime(target)*1000)
+				return
 			end
-			-- Duel hability item
-		    if SleepCheck("duel") then
-				me:CastAbility(duel,victim)
+			-- Duel Hability item
+			if SleepCheck("duel") then
+				me:CastAbility(duel,target)
+				Sleep(attack:FindCastPoint()*1000)
 			end
 			Sleep(50)
 		    BlinkActive = false
@@ -305,14 +281,6 @@ function onClose()
 	collectgarbage("collect")
 	if registered then
 	    statusText.visible = false
-		box.visible = false
-		duel2.visible = false	
-		blink2.visible = false	
-		armlet2.visible = false
-		blademail2.visible = false
-		bkb2.visible = false
-		abyssal2.visible = false
-		mjolnir2.visible = false
 		script:UnregisterEvent(Main)
 		script:UnregisterEvent(tick)
 		script:UnregisterEvent(Key)
