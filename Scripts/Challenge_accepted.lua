@@ -107,7 +107,6 @@ function Main(tick)
     local blink = me:FindItem("item_blink")
 	local attack = me:GetAbility(2)
 	local duel = me:GetAbility(4)
-	local distance = GetDistance2D(me,target)
 	local armlet = me:FindItem("item_armlet")
 	local blademail = me:FindItem("item_blade_mail")
 	local bkb1 = me:FindItem("item_black_king_bar")
@@ -127,6 +126,7 @@ function Main(tick)
 		end
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 	if not SleepCheck() then return end
+	local distance = GetDistance2D(me,target)
 	
 	
 	--SUPER COMBO
