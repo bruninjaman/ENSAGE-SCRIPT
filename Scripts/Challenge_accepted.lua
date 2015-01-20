@@ -20,6 +20,12 @@
 -- # Fixed FPS Reduction (not tested)
 -- # Fixed  check items and spells cd (Trying to fixe always use Abyssal blade.)
 -- # Menu Beta (it will be better on the future)
+-- Version 1.3 - Monday, January 19, 2015
+-- # Fixed FPS Reduction, now it's really fixed.
+-- # Added Medallion, Mask of madness and Halberd
+-- # Fixed allways use Abyssal blade (thank you Moones)
+-- # Fixed CD time before ultimate (now is instant ultimate)
+-- # Menu Will be fixed in another version( but it doesn't is a problem).
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are if legion commander.
@@ -63,22 +69,8 @@ function onLoad()
 			registered = true
 			statusText.visible = true 
 			script:RegisterEvent(EVENT_TICK,Main)
-			script:RegisterEvent(EVENT_TICK,tick)
 			script:RegisterEvent(EVENT_KEY,Key)
 			script:UnregisterEvent(onLoad)
-		end
-	end
-end
--- Marked for death visual --
-function tick(tick)
-	if PlayingGame() then
-		local target = targetFind:GetClosestToMouse(100)
-		if target then
-			ikillyou.visible = true
-			ikillyou.entity = target
-			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
-		else
-			ikillyou.visible = false
 		end
 	end
 end
@@ -113,8 +105,18 @@ local bkb2 = drawMgr:CreateRect(1430*monitor,9*monitor,33*monitor,20*monitor,0x0
 local abyssal2 = drawMgr:CreateRect(1460*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) abyssal2.visible = false
 local mjolnir2 = drawMgr:CreateRect(1490*monitor,9*monitor,33*monitor,20*monitor,0x000000ff) mjolnir2.visible = false
 function Main(tick)
+	-- Visual Marked for death
+	local target = targetFind:GetClosestToMouse(100)
+		if target then
+			ikillyou.visible = true
+			ikillyou.entity = target
+			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
+		else
+			ikillyou.visible = false
+		end
+	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 	-- Images
-			local me = entityList:GetMyHero()
+	local me = entityList:GetMyHero()
 			if not me then return end
 			local active = true
 			-- Legion ultimate variable --
@@ -193,50 +195,101 @@ function Main(tick)
 	local bkb1 = me:FindItem("item_black_king_bar")
 	local abyssal =  me:FindItem("item_abyssal_blade")
 	local mjolnir = me:FindItem("item_mjollnir")
+	local halberd = me:FindItem("item_heavens_halberd")
+	local medallion = me:FindItem("item_medallion_of_courage")
+	local madness = me:FindItem("item_mask_of_madness")
 	
 	
 	--SUPER COMBO
 	if victim and BlinkActive and me.alive and distance < range then
         if blink and blink:CanBeCasted() then
+			-- Second Skill
 			me:CastAbility(attack,me)
 	        me:CastAbility(blink,victim.position)
+			-- Check bkb active or inactive
 			if (key1==key2) and bkb1 then
 				me:SafeCastItem("item_black_king_bar")
 			end
+			-- Mjolnir item
 			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY then
 				me:CastAbility(mjolnir,me)
 			end
+			-- Armlet item
 			if armlet then
 				me:SafeCastItem("item_armlet")
 			end
+			-- madness item
+			if madness then
+				me:SafeCastItem("item_mask_of_madness")
+			end
+			-- Abyssal item
 			if abyssal and abyssal.state == LuaEntityItem.STATE_READY then
 				me:CastItem("item_abyssal_blade",victim)
+				Sleep(100,"duel")
 			end
+			-- halberd item
+			if halberd and halberd.state == LuaEntityItem.STATE_READY then
+				me:CastItem("item_heavens_halberd",victim)
+				Sleep(50,"duel")
+			end
+			-- medallion of courage item
+			if medallion and medallion.state == LuaEntityItem.STATE_READY then
+				me:CastItem("item_medallion_of_courage",victim)
+				Sleep(50,"duel")
+			end
+			-- Blademail item
 			if blademail then
 				me:SafeCastItem("item_blade_mail")
 			end
-		    me:CastAbility(duel,victim)
-			Sleep(600)
+			-- Duel Hability item
+			if SleepCheck("duel") then
+				me:CastAbility(duel,victim)
+			end
+			Sleep(50)
 		    BlinkActive = false
 		else
+			-- Second item
 			me:CastAbility(attack,me)
+			-- BKB item
 			if (key1==key2) and bkb1 then
 				me:SafeCastItem("item_black_king_bar")
 			end
+			-- Abyssal item
 			if abyssal and abyssal.state == LuaEntityItem.STATE_READY then
 				me:CastItem("item_abyssal_blade",victim)
+				Sleep(100,"duel")
 			end
+			-- halberd item
+			if halberd and halberd.state == LuaEntityItem.STATE_READY then
+				me:CastItem("item_heavens_halberd",victim)
+				Sleep(50,"duel")
+			end
+			-- Mjolnir item
 			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY then
 				me:CastAbility(mjolnir,me)
 			end
+			-- medallion of courage item
+			if medallion and medallion.state == LuaEntityItem.STATE_READY then
+				me:CastItem("item_medallion_of_courage",victim)
+				Sleep(50,"duel")
+			end
+			-- Armlet item
 			if armlet then
 				me:SafeCastItem("item_armlet")
 			end
+			-- madness item
+			if madness then
+				me:SafeCastItem("item_mask_of_madness")
+			end
+			-- blademail item
 			if blademail then
 				me:SafeCastItem("item_blade_mail")
 			end
-		    me:CastAbility(duel,victim)
-			Sleep(600)
+			-- Duel hability item
+		    if SleepCheck("duel") then
+				me:CastAbility(duel,victim)
+			end
+			Sleep(50)
 		    BlinkActive = false
 		end
 		Sleep(200)
@@ -268,4 +321,3 @@ function onClose()
 end
 script:RegisterEvent(EVENT_CLOSE,onClose)
 script:RegisterEvent(EVENT_TICK,onLoad)
-script:RegisterEvent(EVENT_TICK,tick)
