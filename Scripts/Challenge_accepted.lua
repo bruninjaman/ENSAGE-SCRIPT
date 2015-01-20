@@ -100,18 +100,7 @@ function Key(msg,code)
 end
 --Start Combo
 function Main(tick)
-	-- Visual Marked for death
-	local target = targetFind:GetClosestToMouse(100)
-		if target then
-			ikillyou.visible = true
-			ikillyou.entity = target
-			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
-		else
-			ikillyou.visible = false
-		end
-	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-	if not SleepCheck() then return end
-	-- variables
+-- variables
 	local me = entityList:GetMyHero()
 	if not me then return end
 	
@@ -127,6 +116,17 @@ function Main(tick)
 	local halberd = me:FindItem("item_heavens_halberd")
 	local medallion = me:FindItem("item_medallion_of_courage")
 	local madness = me:FindItem("item_mask_of_madness")
+	-- Visual Marked for death
+	local target = targetFind:GetClosestToMouse(100)
+		if target then
+			ikillyou.visible = true
+			ikillyou.entity = target
+			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
+		else
+			ikillyou.visible = false
+		end
+	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	if not SleepCheck() then return end
 	
 	
 	--SUPER COMBO
