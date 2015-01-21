@@ -1,5 +1,5 @@
 --<<Challenge Accepted, Legion commander script! By Bruninjaman>>
--- Version 1.4
+-- Version 1.5
 -- 1 - Now you can't lose a duel.
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo (Press The Attack -> blink-> blademail -> mjolnir -> mordiggian -> Abyssal -> BKB (if enable) )
@@ -30,7 +30,7 @@
 -- # Fixed FPS reduction [Beta]
 -- # Added CanBeCasted() and CanCast() and some sleep().
 -- # Removed itens menu, it will be worked later.
--- Version 1.4 - Tuesday, January 20, 2015
+-- Version 1.5 - Tuesday, January 20, 2015
 -- # Fixed Armlet, now the script will use only if it is inactivated.
 -- # Added cancel config, now you can cancel the combo. ( thanks Nova)
 -------------------------------------------------------------------------------------------------------
