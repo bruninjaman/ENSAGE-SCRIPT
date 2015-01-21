@@ -1,5 +1,5 @@
 --<<Challenge Accepted, Legion commander script! By Bruninjaman>>
--- Version 1.2
+-- Version 1.4
 -- 1 - Now you can't lose a duel.
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo (Press The Attack -> blink-> blademail -> mjolnir -> mordiggian -> Abyssal -> BKB (if enable) )
@@ -30,6 +30,9 @@
 -- # Fixed FPS reduction [Beta]
 -- # Added CanBeCasted() and CanCast() and some sleep().
 -- # Removed itens menu, it will be worked later.
+-- Version 1.4 - Tuesday, January 20, 2015
+-- # Fixed Armlet, now the script will use only if it is inactivated.
+-- # Added cancel config, now you can cancel the combo. ( thanks Nova)
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are if legion commander.
@@ -43,26 +46,29 @@ require("libs.TargetFind")
 config = ScriptConfig.new()
 config:SetParameter("toggleKey", "F", config.TYPE_HOTKEY)
 config:SetParameter("BlinkComboKey", "D", config.TYPE_HOTKEY)
+config:SetParameter("StopComboKey", "S", config.TYPE_HOTKEY)
 config:Load()
 -- Some Variables
 local toggleKey     = config.toggleKey
 local BlinkComboKey = config.BlinkComboKey
+local StopComboKey =config.StopComboKey
 local registered	= false
 local range 		= 1200
+local ARMLET_DELAY  = 100
 -- Others variables
 local target	    = nil
 local active	    = false
-local BlinkActive = false
-local key1 = false
-local key2 = true
+local BlinkActive   = false
+local key1          = false
+local key2          = true
 -- Visual variables
-local legion = drawMgr:CreateFont("Font","Tahoma",14,550)
+local legion   = drawMgr:CreateFont("Font","Tahoma",14,550)
 local ikillyou = drawMgr:CreateText(-50,-50,-1,"Marked for death!",legion); ikillyou.visible = false
 -- Menu screen
-local x,y = 1150, 50
-local monitor = client.screenSize.x/1600
-local F14 = drawMgr:CreateFont("F14","Franklin Gothic Medium",17,800) 
-local statusText = drawMgr:CreateText(x*monitor,y*monitor,-1,"Legion Commander - BKB Disabled! - (" .. string.char(toggleKey) .. ")   AutoCombo - (" .. string.char(BlinkComboKey) .. ")",F14) statusText.visible = false
+local x,y         = 1150, 50
+local monitor     = client.screenSize.x/1600
+local F14         = drawMgr:CreateFont("F14","Franklin Gothic Medium",17,800) 
+local statusText  = drawMgr:CreateText(x*monitor,y*monitor,-1,"Legion Commander - BKB Disabled! - (" .. string.char(toggleKey) .. ")   AutoCombo - (" .. string.char(BlinkComboKey) .. ")",F14) statusText.visible = false
 -- When you start the game (check hero)
 function onLoad()
 	if PlayingGame() then
@@ -96,6 +102,9 @@ function Key(msg,code)
 	if code == BlinkComboKey then
 		BlinkActive = true
 	end
+	if code == StopComboKey then
+		BlinkActive = false
+	end
 	
 end
 --Start Combo
@@ -103,18 +112,19 @@ function Main(tick)
 -- variables
 	local me = entityList:GetMyHero()
 	if not me then return end
-	
-    local blink = me:FindItem("item_blink")
-	local attack = me:GetAbility(2)
-	local duel = me:GetAbility(4)
-	local armlet = me:FindItem("item_armlet")
-	local blademail = me:FindItem("item_blade_mail")
-	local bkb1 = me:FindItem("item_black_king_bar")
-	local abyssal =  me:FindItem("item_abyssal_blade")
-	local mjolnir = me:FindItem("item_mjollnir")
-	local halberd = me:FindItem("item_heavens_halberd")
-	local medallion = me:FindItem("item_medallion_of_courage")
-	local madness = me:FindItem("item_mask_of_madness")
+	-- state armlet --
+	local armState    = me:DoesHaveModifier("modifier_item_armlet_unholy_strength")
+    local blink       = me:FindItem("item_blink")
+	local attack      = me:GetAbility(2)
+	local duel        = me:GetAbility(4)
+	local armlet      = me:FindItem("item_armlet")
+	local blademail   = me:FindItem("item_blade_mail")
+	local bkb1        = me:FindItem("item_black_king_bar")
+	local abyssal     =  me:FindItem("item_abyssal_blade")
+	local mjolnir     = me:FindItem("item_mjollnir")
+	local halberd     = me:FindItem("item_heavens_halberd")
+	local medallion   = me:FindItem("item_medallion_of_courage")
+	local madness     = me:FindItem("item_mask_of_madness")
 	-- Visual Marked for death
 	local target = targetFind:GetClosestToMouse(100)
 		if target then
@@ -157,10 +167,9 @@ function Main(tick)
 				return
 			end
 			-- Armlet item
-			if armlet and armlet:CanBeCasted() then
+			if armlet and armlet:CanBeCasted() and not armState then
 				me:SafeCastItem("item_armlet")
-				Sleep(100+me:GetTurnTime(target)*1000)
-				return
+				Sleep(ARMLET_DELAY)
 			end
 			-- madness item
 			if madness and madness:CanBeCasted() then
@@ -222,10 +231,9 @@ function Main(tick)
 				return
 			end
 			-- Armlet item
-			if armlet and armlet:CanBeCasted() then
+			if armlet and armlet:CanBeCasted() and not armState then
 				me:SafeCastItem("item_armlet")
-				Sleep(100+me:GetTurnTime(target)*1000)
-				return
+				Sleep(ARMLET_DELAY)
 			end
 			-- madness item
 			if madness and madness:CanBeCasted() then
