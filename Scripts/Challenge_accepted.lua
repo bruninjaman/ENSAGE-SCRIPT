@@ -54,7 +54,7 @@
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are legion commander.
--- 2 - This script will show the equipments you're using in this combo.
+-- 2 - This script will show the equipments you're using in this combo.[Menu Will be worked later]
 -- 3 - This script will be upgraded until it be perfect.
 -- Libraries
 require("libs.Utils")
