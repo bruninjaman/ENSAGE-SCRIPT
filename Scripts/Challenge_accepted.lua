@@ -1,5 +1,5 @@
---<<Legion commander V1.8 ☠ - autoduel script - by ☢bruninjaman☢>>
--- Version 1.8
+--<<Legion commander V1.9 ☠ - autoduel script - by ☢bruninjaman☢>>
+-- Version 1.9
 -- 1 - Now you can't lose a duel. ｡◕‿◕｡
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo (Press The Attack ➩ blink ➩ blademail ➩ mjolnir ➩ mordiggian ➩ Abyssal ➩ BKB (if enable) )
@@ -50,7 +50,10 @@
 -- ➩ Increased speed to use ultimate
 -- Version 1.8 Saturday, January 24, 2015
 -- ➩ Script re-organize.
-
+-- Version 1.9 Sunday, January 25, 2015
+-- ➩ Check if enemies have linkens
+-- ➩ Check if target is imune from physical damage.
+-- ➩ Fixed illusion autoultimate and fixed autoultimate.
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are legion commander.
@@ -271,14 +274,14 @@ function Main(tick)
 			-- halberd item
 			if halberd and halberd.state == LuaEntityItem.STATE_READY and halberd:CanBeCasted() then
 				me:CastItem("item_heavens_halberd",target)
-				Sleep(50,"duel")
+				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- medallion of courage item
 			if medallion and medallion.state == LuaEntityItem.STATE_READY and medallion:CanBeCasted() then
 				me:CastItem("item_medallion_of_courage",target)
-				Sleep(50,"duel")
+				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
@@ -288,8 +291,9 @@ function Main(tick)
 				Sleep(100+me:GetTurnTime(target)*600)
 				return
 			end
-			-- Duel Hability item
-			if SleepCheck("duel") and duel:CanBeCasted() then
+			-- Duel Hability
+			if SleepCheck("duel") and duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() then
+				
 				me:CastAbility(duel,target)
 				Sleep(attack:FindCastPoint()*500)
 			end
@@ -335,14 +339,14 @@ function Main(tick)
 			-- halberd item
 			if halberd and halberd.state == LuaEntityItem.STATE_READY and halberd:CanBeCasted() then
 				me:CastItem("item_heavens_halberd",target)
-				Sleep(50,"duel")
+				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- medallion of courage item
 			if medallion and medallion.state == LuaEntityItem.STATE_READY and medallion:CanBeCasted() then
 				me:CastItem("item_medallion_of_courage",target)
-				Sleep(50,"duel")
+				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
@@ -352,8 +356,8 @@ function Main(tick)
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
-			-- Duel Hability item
-			if SleepCheck("duel") and duel:CanBeCasted() then
+			-- Duel Hability
+			if SleepCheck("duel") and duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() then
 				me:CastAbility(duel,target)
 				Sleep(attack:FindCastPoint()*500)
 			end
@@ -402,7 +406,7 @@ function autoduel(msg,code)
 		end
 	end
 	-- Duel damage calculation --
-	if not duelDamage or duelDamage[2] ~= me.attackSpeed or duelDamage[3] ~= me.dmgMin or duelDamage[4] ~= me.dmgBonus then
+	if not duelDamageTable or duelDamageTable[2] ~= me.attackSpeed or duelDamageTable[3] ~= me.dmgMin or duelDamageTable[4] ~= me.dmgBonus then
       duelDamageTable = {AbilityDamage.GetDamage(duel), me.attackSpeed, me.dmgMin, me.dmgBonus}
 	end
 	local duelDamage = (duelDamageTable[1] * 0.5)
@@ -411,7 +415,7 @@ function autoduel(msg,code)
 		enemies  = entityList:GetEntities({type=LuaEntity.TYPE_HERO, alive=true, team=me:GetEnemyTeam()})
 		for i,enemy in ipairs(enemies) do
 			distance = GetDistance2D(me,enemy)
-			if enemy.health   <= duelDamage and distance < rangeduel and me.health >= myhp then
+			if enemy.health <= duelDamage and distance < rangeduel and me.health >= myhp and duel:CanBeCasted() and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() then
 				-- second skill --
 				if attack:CanBeCasted() and SleepCheck("castattack") then
 					me:CastAbility(attack,me)
@@ -420,7 +424,7 @@ function autoduel(msg,code)
 					return
 				end
 				-- Duel --
-				if duel:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") then
+				if duel:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() then
 						me:CastAbility(duel,enemy)
 						Sleep(100,"castduel")
 						return
