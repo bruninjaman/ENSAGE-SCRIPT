@@ -1,5 +1,5 @@
---<<Legion commander V1.9 ☠ - autoduel script - by ☢bruninjaman☢>>
--- Version 1.9
+--<<Legion commander V2.0 ☠ - autoduel script - by ☢bruninjaman☢>>
+-- Version 2.0
 -- 1 - Now you can't lose a duel. ｡◕‿◕｡
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo (Press The Attack ➩ blink ➩ blademail ➩ mjolnir ➩ mordiggian ➩ Abyssal ➩ BKB (if enable) )
@@ -54,6 +54,10 @@
 -- ➩ Check if enemies have linkens
 -- ➩ Check if target is imune from physical damage.
 -- ➩ Fixed illusion autoultimate and fixed autoultimate.
+-- Version 2.0 Wednesday, February 4, 2015
+-- ➩ Reworked code and added some sleeps.. ( fixed problems with high memory usage. ). Thanks NOVA for help.
+-- ➩ Urn added.
+-- ➩ auto urn added.
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are legion commander.
@@ -76,27 +80,36 @@ local AutoDuelKey    = config.AutoDuelKey
 local toggleKey      = config.toggleKey
 local BlinkComboKey  = config.BlinkComboKey
 local StopComboKey   = config.StopComboKey
-local registered	 = false
-local range 		 = 1200
-local ARMLET_DELAY   = 100
+local ranges = {
+		1200,      -- range ranges[1]
+		100,       -- ARMLET_DELAY ranges[2]	
+		400,       -- rangeduel ranges[3]
+
+}
+local keys = { 
+			false,    -- registered keys[1]
+			false,    -- active keys[2]
+			false,    -- active2 keys[3]
+			false,    -- BlinkActive keys[4]
+			false,    -- key1 keys[5]
+			true,     -- key2 keys[6]
+			true,     -- haveduelcheck keys[7]
+			true,     -- duelenable keys[8]
+			true     -- havebkb keys[9]
+			}
 -- Others variables
 local target	     = nil
-local active	     = false
-local active2	     = false
-local BlinkActive    = false
-local key1           = false
-local key2           = true
+-- array item variable --
+local item = nil
+local me = nil
 -- Menu screen
 local x,y            = 1150, 50
 local monitor        = client.screenSize.x/1600
 local F14            = drawMgr:CreateFont("F14","Franklin Gothic Medium",17,800) 
 local statusText     = drawMgr:CreateText(x*monitor,y*monitor,-1,"                                           No BKB -        AutoCombo - (".. string.char(BlinkComboKey) ..")",F14) statusText.visible = false
--- Autoultimate Enable/Disable --
 -- Autoultimate Variables 
 local targetHandle   = nil
 local x1,y1          = 50, 50
-local haveduelcheck  = true
-local duelenable     = true
 local duelText       = drawMgr:CreateText(x1*monitor,y1*monitor,-1,"You don't have duel.",F14) duelText.visible = false
 -- -- -- -- -- -- -- -- -- --
 -- Visual variables
@@ -105,7 +118,6 @@ local ikillyou       = drawMgr:CreateText(-50,-50,-1,"Marked for death!",legion)
 -- Black king bar icon -- 
 local bkbicon        = drawMgr:CreateRect(-16,-80,45,30,0x000000ff) bkbicon .visible = false
 local bkbiconoff     = drawMgr:CreateRect(-16,-80,45,30,0x000000ff) bkbicon .visible = false
-local havebkb        = true
 -- When you start the game (check hero)
 function onLoad()
 	if PlayingGame() then
@@ -115,7 +127,7 @@ function onLoad()
 			script:Disable()
 		else
 			-- if is, enable script --
-			registered = true
+			keys[1] = true
 			statusText.visible = true 
 			duelText.visible = true
 			script:RegisterEvent(EVENT_TICK,Main)
@@ -127,7 +139,7 @@ function onLoad()
 end
 --pressing a key
 function Key(msg,code)
-	local me = entityList:GetMyHero()
+	me = entityList:GetMyHero()
 	if not me then return end
 	-- BKB icon --
 	bkbicon.entity            = me 
@@ -138,20 +150,20 @@ function Key(msg,code)
 	bkbiconoff.textureId      = drawMgr:GetTextureId("NyanUI/items/translucent/black_king_bar_t25")
 	local bkb1                = me:FindItem("item_black_king_bar")
 	if client.chat or client.console or client.loading then return end
-	if bkb1 and havebkb then
+	if bkb1 and keys[9] then
 		statusText.text = "Legion Commander - BKB Enable! - (" .. string.char(toggleKey) .. ")   AutoCombo - (" .. string.char(BlinkComboKey) .. ") "
-		key2            = false
+		keys[6]            = false
 		bkbicon.visible = true
-		havebkb         = false
+		keys[9]         = false
 	end
     if IsKeyDown(toggleKey) and SleepCheck("try") then
-		active = not active
+		keys[2] = not keys[2]
 		Sleep(100,"try")
 		-- Active/desative bkb --
-		if active then
+		if keys[2] then
 			if bkb1 then
 				statusText.text = "Legion Commander - BKB Enable! - (" .. string.char(toggleKey) .. ")   AutoCombo - (" .. string.char(BlinkComboKey) .. ") "
-				key2 = false
+				keys[6] = false
 				bkbicon.visible    = true
 				bkbiconoff.visible = false
 			else
@@ -162,7 +174,7 @@ function Key(msg,code)
 		else
 			if bkb1 then
 				statusText.text = "Legion Commander - BKB Disabled! - (" .. string.char(toggleKey) .. ")   AutoCombo - (" .. string.char(BlinkComboKey) .. ") "
-				key2 = true
+				keys[6] = true
 				bkbicon.visible = false
 				bkbiconoff.visible = true
 			else
@@ -174,47 +186,34 @@ function Key(msg,code)
 	end	
 	
 	if code == BlinkComboKey then
-		BlinkActive = true
+		keys[4] = true
 	end
 	if code == StopComboKey then
-		BlinkActive = false
+		keys[4] = false
 	end
 	
 end
 --Start Combo
--- Variables "itens" pre-define --
-local armState    = nil
-local blink       = nil
-local attack      = nil
-local duel        = nil
-local armlet      = nil
-local blademail   = nil
-local bkb1        = nil
-local abyssal     = nil
-local mjolnir     = nil
-local halberd     = nil
-local medallion   = nil
-local madness     = nil
 function Main(tick)
--- variables
-	local me = entityList:GetMyHero()
+	me = entityList:GetMyHero()
 	if not me then return end
-	-- state armlet --
-	armState    = me:DoesHaveModifier("modifier_item_armlet_unholy_strength")
-    blink       = me:FindItem("item_blink")
-	attack      = me:GetAbility(2)
-	duel        = me:GetAbility(4)
-	armlet      = me:FindItem("item_armlet")
-	blademail   = me:FindItem("item_blade_mail")
-	bkb1        = me:FindItem("item_black_king_bar")
-	abyssal     = me:FindItem("item_abyssal_blade")
-	mjolnir     = me:FindItem("item_mjollnir")
-	halberd     = me:FindItem("item_heavens_halberd")
-	medallion   = me:FindItem("item_medallion_of_courage")
-	madness     = me:FindItem("item_mask_of_madness")
-	-- Visual Marked for death
+	item = {
+		me:DoesHaveModifier("modifier_item_armlet_unholy_strength"), -- item[1]
+		me:FindItem("item_blink"), 									 -- item[2]
+		me:GetAbility(2),                                            -- item[3]
+		me:GetAbility(4),                                            -- item[4]
+		me:FindItem("item_armlet"),                                  -- item[5]
+		me:FindItem("item_blade_mail"),                              -- item[6]
+		me:FindItem("item_black_king_bar"),                          -- item[7]
+		me:FindItem("item_abyssal_blade"),                           -- item[8]
+		me:FindItem("item_mjollnir"),                                -- item[9]
+		me:FindItem("item_heavens_halberd"),                         -- item[10]
+		me:FindItem("item_medallion_of_courage"),                    -- item[11]
+		me:FindItem("item_mask_of_madness"),                         -- item[12]
+		me:FindItem("item_urn_of_shadows"),                          -- item[13]
+	}
 	target = targetFind:GetClosestToMouse(100)
-		if target then
+		if target and target.visible and target.alive then
 			ikillyou.visible = true
 			ikillyou.entity = target
 			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
@@ -224,145 +223,94 @@ function Main(tick)
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 	if not SleepCheck() then return end
 	local distance = GetDistance2D(me,target)
-	
-	
+	-- autourn function --
+	if target.health <= 150 and item[13] and distance < ranges[1] and target.visible and target.alive then
+		if item[13] and item[13]:CanBeCasted() then
+			me:CastItem("item_urn_of_shadows",target)
+			Sleep(100+me:GetTurnTime(target)*500)
+		return
+		end
+	end
 	--SUPER COMBO
-	if target and BlinkActive and me.alive and distance < range then
+	if target and keys[4] and me.alive and distance < ranges[1] and target.visible and target.alive then
         if me:CanCast() then
 			-- Second Skill
-			if attack:CanBeCasted() then
-				me:CastAbility(attack,me)
-				Sleep(attack:FindCastPoint()*500)
+			if item[3]:CanBeCasted() then
+				me:CastAbility(item[3],me)
+				Sleep(item[3]:FindCastPoint()*500)
 				return
 			end
 			-- Blink action --
-			if blink and blink:CanBeCasted() then
-				me:CastAbility(blink,target.position)
+			if item[2] and item[2]:CanBeCasted() then
+				me:CastAbility(item[2],target.position)
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- Check bkb active or inactive
-			if (key1==key2) and bkb1 and bkb1:CanBeCasted() then
+			if (keys[5]==keys[6]) and item[7] and item[7]:CanBeCasted() then
 				me:SafeCastItem("item_black_king_bar")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- Mjolnir item
-			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY and mjolnir:CanBeCasted() then
-				me:CastAbility(mjolnir,me)
+			if item[9] and item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() then
+				me:CastAbility(item[9],me)
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- Armlet item
-			if armlet and armlet:CanBeCasted() and not armState then
+			if item[5] and item[5]:CanBeCasted() and not item[1] then
 				me:SafeCastItem("item_armlet")
-				Sleep(ARMLET_DELAY)
+				Sleep(ranges[2])
 			end
 			-- madness item
-			if madness and madness:CanBeCasted() then
+			if item[12] and item[12]:CanBeCasted() then
 				me:SafeCastItem("item_mask_of_madness")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- Abyssal item
-			if abyssal and abyssal.state == LuaEntityItem.STATE_READY and abyssal:CanBeCasted() then
+			if item[8] and item[8].state == LuaEntityItem.STATE_READY and item[8]:CanBeCasted() then
 				me:CastItem("item_abyssal_blade",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
+			-- urn of shadows item
+			if item[13] and item[13]:CanBeCasted() then
+				me:CastItem("item_urn_of_shadows",target)
+				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*500)
+				return
+			end
 			-- halberd item
-			if halberd and halberd.state == LuaEntityItem.STATE_READY and halberd:CanBeCasted() then
+			if item[10] and item[10].state == LuaEntityItem.STATE_READY and item[10]:CanBeCasted() then
 				me:CastItem("item_heavens_halberd",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- medallion of courage item
-			if medallion and medallion.state == LuaEntityItem.STATE_READY and medallion:CanBeCasted() then
+			if item[11] and item[11].state == LuaEntityItem.STATE_READY and item[11]:CanBeCasted() then
 				me:CastItem("item_medallion_of_courage",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 				return
 			end
 			-- Blademail item
-			if blademail and blademail:CanBeCasted() then
+			if item[6] and item[6]:CanBeCasted() then
 				me:SafeCastItem("item_blade_mail")
 				Sleep(100+me:GetTurnTime(target)*600)
 				return
 			end
 			-- Duel Hability
-			if SleepCheck("duel") and duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() then
+			if SleepCheck("duel") and item[4]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() then
 				
-				me:CastAbility(duel,target)
-				Sleep(attack:FindCastPoint()*500)
+				me:CastAbility(item[4],target)
+				Sleep(item[3]:FindCastPoint()*500)
 			end
 			Sleep(50)
-		    BlinkActive = false
-		else
-			-- Second Skill
-			if attack:CanBeCasted() then
-				me:CastAbility(attack,me)
-				Sleep(attack:FindCastPoint()*500)
-				return
-			end
-			-- Check bkb active or inactive
-			if (key1==key2) and bkb1 and bkb1:CanBeCasted() then
-				me:SafeCastItem("item_black_king_bar")
-				Sleep(100+me:GetTurnTime(target)*500)
-				return
-			end
-			-- Mjolnir item
-			if mjolnir and mjolnir.state == LuaEntityItem.STATE_READY and mjolnir:CanBeCasted() then
-				me:CastAbility(mjolnir,me)
-				Sleep(100+me:GetTurnTime(target)*500)
-				return
-			end
-			-- Armlet item
-			if armlet and armlet:CanBeCasted() and not armState then
-				me:SafeCastItem("item_armlet")
-				Sleep(ARMLET_DELAY)
-			end
-			-- madness item
-			if madness and madness:CanBeCasted() then
-				me:SafeCastItem("item_mask_of_madness")
-				Sleep(100+me:GetTurnTime(target)*500)
-				return
-			end
-			-- Abyssal item
-			if abyssal and abyssal.state == LuaEntityItem.STATE_READY and abyssal:CanBeCasted() then
-				me:CastItem("item_abyssal_blade",target)
-				Sleep(100,"duel")
-				Sleep(100+me:GetTurnTime(target)*500)
-				return
-			end
-			-- halberd item
-			if halberd and halberd.state == LuaEntityItem.STATE_READY and halberd:CanBeCasted() then
-				me:CastItem("item_heavens_halberd",target)
-				Sleep(100,"duel")
-				Sleep(100+me:GetTurnTime(target)*500)
-				return
-			end
-			-- medallion of courage item
-			if medallion and medallion.state == LuaEntityItem.STATE_READY and medallion:CanBeCasted() then
-				me:CastItem("item_medallion_of_courage",target)
-				Sleep(100,"duel")
-				Sleep(100+me:GetTurnTime(target)*500)
-				return
-			end
-			-- Blademail item
-			if blademail and blademail:CanBeCasted() then
-				me:SafeCastItem("item_blade_mail")
-				Sleep(100+me:GetTurnTime(target)*500)
-				return
-			end
-			-- Duel Hability
-			if SleepCheck("duel") and duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() then
-				me:CastAbility(duel,target)
-				Sleep(attack:FindCastPoint()*500)
-			end
-			Sleep(50)
-		    BlinkActive = false
+		    keys[4] = false
 		end
 		Sleep(200)
 	    return
@@ -372,60 +320,73 @@ function Main(tick)
 	    
 end
 -- Variables autoduel --
-	local rangeduel       = 400
 	local enemies         = nil
 	local distance        = nil
 	local duelDamageTable = nil
 function autoduel(msg,code)
-	if client.chat or client.console or client.loading then return end
-	local me              = entityList:GetMyHero()
-	local myhp            = (me.maxHealth * 0.4)
-	local attack          = me:GetAbility(2)
+	me = entityList:GetMyHero()
 	if not me then return end
-	-- Duel Hability -- -- -- -- -- -- -- -- --
-	local duel      = me:GetAbility(4)
-	-- -- -- -- -- -- -- -- -- -- -- -- -- --
-	if duel.level > 0 and haveduelcheck then
+	item = {
+		me:DoesHaveModifier("modifier_item_armlet_unholy_strength"), -- item[1]
+		me:FindItem("item_blink"), 									 -- item[2]
+		me:GetAbility(2),                                            -- item[3]
+		me:GetAbility(4),                                            -- item[4]
+	}
+	if client.chat or client.console or client.loading then return end
+	local myhp            = (me.maxHealth * 0.4)
+	if not me then return end
+	if item[4].level > 0 and keys[7] then
 		duelText.text         = "AutoDuel [Enable] - (" .. string.char(AutoDuelKey) .. ")"
-		haveduelcheck         = false
+		keys[7]         = false
 	end
 	-- Key configuration --
     if IsKeyDown(AutoDuelKey) and SleepCheck("try") then
-		active2 = not active2
+		keys[3] = not keys[3]
 		Sleep(100,"try")
-		if active2 then
-			if duel.level > 0 then
+		if keys[3] then
+			if item[4].level > 0 then
 				duelText.text      = "AutoDuel [Enable] - (" .. string.char(AutoDuelKey) .. ")"
-				duelenable         = true
+				keys[8]         = true
 			end
 		else
-			if duel.level > 0 then
+			if item[4].level > 0 then
 				duelText.text      = "AutoDuel [Disable] - (" .. string.char(AutoDuelKey) .. ")"
-				duelenable = false
+				keys[8] = false
 			end
 		end
 	end
 	-- Duel damage calculation --
 	if not duelDamageTable or duelDamageTable[2] ~= me.attackSpeed or duelDamageTable[3] ~= me.dmgMin or duelDamageTable[4] ~= me.dmgBonus then
-      duelDamageTable = {AbilityDamage.GetDamage(duel), me.attackSpeed, me.dmgMin, me.dmgBonus}
+      duelDamageTable = {AbilityDamage.GetDamage(item[4]), me.attackSpeed, me.dmgMin, me.dmgBonus}
 	end
 	local duelDamage = (duelDamageTable[1] * 0.5)
 	-- Auto use duel configuration --
-	if duelenable and duel and SleepCheck("onetime") then
+	if item[2] and item[2]:CanBeCasted() then
+		ranges[3] = 1000
+	else
+		ranges[3] = 400
+	end
+	if keys[8] and item[4] and SleepCheck("onetime") then
 		enemies  = entityList:GetEntities({type=LuaEntity.TYPE_HERO, alive=true, team=me:GetEnemyTeam()})
 		for i,enemy in ipairs(enemies) do
 			distance = GetDistance2D(me,enemy)
-			if enemy.health <= duelDamage and distance < rangeduel and me.health >= myhp and duel:CanBeCasted() and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() then
+			if enemy.health <= duelDamage and distance < ranges[3] and me.health >= myhp and item[4]:CanBeCasted() and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() then
 				-- second skill --
-				if attack:CanBeCasted() and SleepCheck("castattack") then
-					me:CastAbility(attack,me)
+				if item[3]:CanBeCasted() and SleepCheck("castattack") then
+					me:CastAbility(item[3],me)
 					Sleep(100,"castattack")
 					Sleep(200,"attack-duel")
 					return
 				end
+				-- Blink action --
+				if item[2] and item[2]:CanBeCasted() then
+					me:CastAbility(item[2],enemy.position)
+					Sleep(100+me:GetTurnTime(enemy)*500)
+					return
+				end
 				-- Duel --
-				if duel:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() then
-						me:CastAbility(duel,enemy)
+				if item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() then
+						me:CastAbility(item[4],enemy)
 						Sleep(100,"castduel")
 						return
 				end
@@ -437,13 +398,13 @@ end
 --END OF GAME 
 function onClose()
 	collectgarbage("collect")
-	if registered then
+	if keys[1] then
 	    statusText.visible = false
 		duelText.visible = false
 		script:UnregisterEvent(Main)
 		script:UnregisterEvent(autoduel)
 		script:UnregisterEvent(Key)
-		registered = false
+		keys[1] = false
 	end
 end
 script:RegisterEvent(EVENT_CLOSE,onClose)
