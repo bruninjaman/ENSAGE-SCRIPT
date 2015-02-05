@@ -1,5 +1,5 @@
---<<Legion commander V2.0 ☠ - autoduel script - by ☢bruninjaman☢>>
--- Version 2.0
+--<<Legion commander V2.1 ☠ - autoduel script - by ☢bruninjaman☢>>
+-- Version 2.1
 -- 1 - Now you can't lose a duel. ｡◕‿◕｡
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo (Press The Attack ➩ blink ➩ blademail ➩ mjolnir ➩ mordiggian ➩ Abyssal ➩ BKB (if enable) )
@@ -58,6 +58,11 @@
 -- ➩ Reworked code and added some sleeps.. ( fixed problems with high memory usage. ). Thanks NOVA for help.
 -- ➩ Urn added.
 -- ➩ auto urn added.
+-- Version 2.1 Wednesday, February 4, 2015
+-- ➩ New Lib Animations(thanks Moones).
+-- ➩ don't have autoblink bug anymore.
+-- ➩ will not use ultimate on abaddon, only if is on cooldown.
+-- ➩ Auto ultimate fixed, now autoultimate will use blink.
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are legion commander.
@@ -68,6 +73,7 @@ require("libs.Utils")
 require("libs.ScriptConfig")
 require("libs.TargetFind")
 require("libs.AbilityDamage")
+require("libs.Animations")
 --Config
 config = ScriptConfig.new()
 config:SetParameter("toggleKey", "F", config.TYPE_HOTKEY)
@@ -98,7 +104,7 @@ local keys = {
 			true     -- havebkb keys[9]
 			}
 -- Others variables
-local target	     = nil
+local target         = nil
 -- array item variable --
 local item = nil
 local me = nil
@@ -195,6 +201,7 @@ function Key(msg,code)
 end
 --Start Combo
 function Main(tick)
+	target = targetFind:GetClosestToMouse(100)
 	me = entityList:GetMyHero()
 	if not me then return end
 	item = {
@@ -212,8 +219,7 @@ function Main(tick)
 		me:FindItem("item_mask_of_madness"),                         -- item[12]
 		me:FindItem("item_urn_of_shadows"),                          -- item[13]
 	}
-	target = targetFind:GetClosestToMouse(100)
-		if target and target.visible and target.alive then
+		if target and target.alive and target.visible then
 			ikillyou.visible = true
 			ikillyou.entity = target
 			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
@@ -224,7 +230,7 @@ function Main(tick)
 	if not SleepCheck() then return end
 	local distance = GetDistance2D(me,target)
 	-- autourn function --
-	if target.health <= 150 and item[13] and distance < ranges[1] and target.visible and target.alive then
+	if target and target.health <= 150 and item[13] and distance < ranges[1] and target.visible and target.alive then
 		if item[13] and item[13]:CanBeCasted() then
 			me:CastItem("item_urn_of_shadows",target)
 			Sleep(100+me:GetTurnTime(target)*500)
@@ -304,10 +310,17 @@ function Main(tick)
 				return
 			end
 			-- Duel Hability
-			if SleepCheck("duel") and item[4]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() then
-				
-				me:CastAbility(item[4],target)
-				Sleep(item[3]:FindCastPoint()*500)
+			if target.classId == CDOTA_Unit_Hero_Abaddon and target:GetAbility(4).cd > 5 then
+				if SleepCheck("duel") and item[4]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
+					me:CastAbility(item[4],target)
+					Sleep(item[3]:FindCastPoint()*500)
+				end
+			else if target.classId ~= CDOTA_Unit_Hero_Abaddon then
+				if SleepCheck("duel") and item[4]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
+					me:CastAbility(item[4],target)
+					Sleep(item[3]:FindCastPoint()*500)
+				end
+			end
 			end
 			Sleep(50)
 		    keys[4] = false
@@ -322,7 +335,8 @@ end
 -- Variables autoduel --
 	local enemies         = nil
 	local distance        = nil
-	local duelDamageTable = nil
+	local duelDamageTable = {}
+	local duelDamage      = 0
 function autoduel(msg,code)
 	me = entityList:GetMyHero()
 	if not me then return end
@@ -355,11 +369,12 @@ function autoduel(msg,code)
 			end
 		end
 	end
+	if Animations.maxCount < 1 then return end
 	-- Duel damage calculation --
 	if not duelDamageTable or duelDamageTable[2] ~= me.attackSpeed or duelDamageTable[3] ~= me.dmgMin or duelDamageTable[4] ~= me.dmgBonus then
       duelDamageTable = {AbilityDamage.GetDamage(item[4]), me.attackSpeed, me.dmgMin, me.dmgBonus}
 	end
-	local duelDamage = (duelDamageTable[1] * 0.5)
+	duelDamage = (duelDamageTable[1])
 	-- Auto use duel configuration --
 	if item[2] and item[2]:CanBeCasted() then
 		ranges[3] = 1000
@@ -385,10 +400,32 @@ function autoduel(msg,code)
 					return
 				end
 				-- Duel --
-				if item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() then
+				if enemy.classId == CDOTA_Unit_Hero_Abaddon and enemy:GetAbility(4).cd > 5 then
+					if item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:DoesHaveModifier("modifier_abaddon_borrowed_time") then
+							me:CastAbility(item[4],enemy)
+							Sleep(100,"castduel")
+							return
+					end
+				else if enemy.classId ~= CDOTA_Unit_Hero_Abaddon then
+					if item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:DoesHaveModifier("modifier_abaddon_borrowed_time") then
 						me:CastAbility(item[4],enemy)
 						Sleep(100,"castduel")
 						return
+					end
+					-- second skill --
+					if item[3]:CanBeCasted() and SleepCheck("castattack") then
+						me:CastAbility(item[3],me)
+						Sleep(100,"castattack")
+						Sleep(200,"attack-duel")
+						return
+					end
+					-- Blink action --
+					if item[2] and item[2]:CanBeCasted() then
+						me:CastAbility(item[2],enemy.position)
+						Sleep(100+me:GetTurnTime(enemy)*500)
+						return
+					end
+					end
 				end
 				Sleep(500,"onetime")
 			end
