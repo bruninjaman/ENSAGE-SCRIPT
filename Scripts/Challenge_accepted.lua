@@ -411,7 +411,7 @@ function autoduel(msg,code)
 		if item[4]:CanBeCasted() then -- Check if have duel [FPS - option]
 			for i,enemy in ipairs(enemies) do
 				distance = GetDistance2D(me,enemy)
-				if enemy.health <= duelDamage and distance < ranges[3] and me.health >= myhp and item[4]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() or item[7] and SleepCheck("DelayCombo2") and Sleep("duelactive2") then
+				if enemy.health <= duelDamage and distance < ranges[3] and me.health >= myhp and item[4]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() or item[7] and SleepCheck("DelayCombo2") and Sleep("duelactive2") and enemy.visible then
 					Sleep(200,"DelayCombo2")
 					-- ➜ Check if is abaddon
 					if enemy.classId == CDOTA_Unit_Hero_Abaddon and enemy:GetAbility(4).cd > 5 then
