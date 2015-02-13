@@ -1,5 +1,5 @@
---<<Legion commander V2.3 ☠ - autoduel script - by ☢bruninjaman☢>>
--- Version 2.3
+--<<Legion commander V2.4 ☠ - autoduel script - by ☢bruninjaman☢>>
+-- Version 2.4
 -- 1 - Now you can't lose a duel. ｡◕‿◕｡
 -- 2 - How it works? Press "Key_configured" and make some destruction.
 -- 3 - The combo [New itens added] (Press The Attack ➩ blink ➩ blademail ➩ mjolnir ➩ mordiggian ➩ Abyssal ➩ BKB (if enable) )
@@ -68,8 +68,10 @@
 -- ➩ more arrays.
 -- ➩ Now Auto Duel Will use all itens.
 -- Version 2.3 Thursday, February 5, 2015
--- ➩ Fixed sometimes use and cancel armlet.
--- ➩ Added blinkdagger icon, when enemy is in blink dagger range.
+-- ➩ CRASH, Removed update.
+-- Version 2.4 Thursday, February 12, 2015
+-- ➩ Fixed Armlet delay.
+-- ➩ Added Delay After combo of 0.2 seconds.[Increase FPS]
 -------------------------------------------------------------------------------------------------------
 -- Some Functions
 -- 1 - This script will run only if you are legion commander.
@@ -125,8 +127,6 @@ local statusText     = drawMgr:CreateText(x*monitor,y*monitor,-1,"              
 -- ✖ Images and coordinates variables ✖ --
 local x1,y1          = 50, 50
 local duelText       = drawMgr:CreateText(x1*monitor,y1*monitor,-1,"Finding Duel Hability.",F14) duelText.visible = false
--- ➜ Blink dagger range
-local blinkicon      = drawMgr:CreateRect(-86,-60,37,25,0x000000ff) blinkicon .visible = false
 -- ➜ marked for death text
 local legion         = drawMgr:CreateFont("Font","Fixedsys",14,550)
 local ikillyou       = drawMgr:CreateText(-50,-50,-1,"Marked for death!",legion); ikillyou.visible = false
@@ -228,25 +228,17 @@ function Main(tick)
 		me:FindItem("item_mask_of_madness"),                         -- ➜ item[12]
 		me:FindItem("item_urn_of_shadows"),                          -- ➜ item[13]
 	}
-	local distance = GetDistance2D(me,target)
-	blinkicon.entity            = target 
-	blinkicon.entityPosition    = Vector(0,0,target.healthbarOffset)
-	blinkicon.textureId         = drawMgr:GetTextureId("NyanUI/items/blink")
 	-- ✖ Marked for death text ✖ --
 		if target and target.alive and target.visible then
 			ikillyou.visible = true
 			ikillyou.entity = target
 			ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
-			if distance < ranges[1] and item[2] then
-				blinkicon.visible = true
-			else
-				blinkicon.visible = false
-			end
 		else
 			ikillyou.visible = false
 		end
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 	if not SleepCheck() then return end
+	local distance = GetDistance2D(me,target)
 	-- ✖ Auto Urn function ✖ --
 	if target and target.health <= 150 and item[13] and distance < ranges[1] and target.visible and target.alive then
 		if item[13] and item[13]:CanBeCasted() then
@@ -256,7 +248,8 @@ function Main(tick)
 		end
 	end
 	-- ✖ Make Combo ✖ --
-	if target and keys[4] and me.alive and distance < ranges[1] and target.visible and target.alive then
+	if target and keys[4] and me.alive and distance < ranges[1] and target.visible and target.alive and SleepCheck("DelayCombo") and SleepCheck("duelactive") then
+		Sleep(200,"DelayCombo")
         if me:CanCast() then
 			-- ➜ Press the attack
 			if item[3]:CanBeCasted() then
@@ -283,10 +276,10 @@ function Main(tick)
 				return
 			end
 			-- ➜ Armlet item
-			if item[5] and item[5]:CanBeCasted() and not item[1] and SleepCheck("fast") then
+			if item[5] and item[5]:CanBeCasted() and not item[1] and SleepCheck("Armlet_use_delay") then
 				me:SafeCastItem("item_armlet")
 				Sleep(ranges[2])
-				Sleep(200,"fast")
+				Sleep(200,"Armlet_use_delay")
 			end
 			-- ➜ Madness item
 			if item[12] and item[12]:CanBeCasted() then
@@ -333,11 +326,15 @@ function Main(tick)
 				if SleepCheck("duel") and item[4]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
 					me:CastAbility(item[4],target)
 					Sleep(item[3]:FindCastPoint()*500)
+					Sleep(2000,"duelactive")
+					keys[4] = false
 				end
 			else if target.classId ~= CDOTA_Unit_Hero_Abaddon then
 				if SleepCheck("duel") and item[4]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
 					me:CastAbility(item[4],target)
 					Sleep(item[3]:FindCastPoint()*500)
+					Sleep(2000,"duelactive")
+					keys[4] = false
 				end
 			end
 			end
@@ -411,144 +408,150 @@ function autoduel(msg,code)
 	end
 	if keys[8] and item[4] and SleepCheck("onetime") then
 		enemies  = entityList:GetEntities({type=LuaEntity.TYPE_HERO, alive=true, team=me:GetEnemyTeam()})
-		for i,enemy in ipairs(enemies) do
-			distance = GetDistance2D(me,enemy)
-			if enemy.health <= duelDamage and distance < ranges[3] and me.health >= myhp and item[4]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() or item[7] then
-				-- ➜ Check if is abaddon
-				if enemy.classId == CDOTA_Unit_Hero_Abaddon and enemy:GetAbility(4).cd > 5 then
-					-- ➜ Press the attack
-					if item[3]:CanBeCasted() and SleepCheck("castattack") then
-						me:CastAbility(item[3],me)
-						Sleep(100,"castattack")
-						Sleep(200,"attack-duel")
-						return
-					end
-					--  ➜ Blink dagger
-					if item[2] and item[2]:CanBeCasted() then
-						me:CastAbility(item[2],enemy.position)
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Abyssal item
-					if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() and enemy:IsLinkensProtected() then
-						me:CastItem("item_abyssal_blade",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Armlet item
-					if item[5] and item[5]:CanBeCasted() and not item[1] and SleepCheck("fast") then
-						me:SafeCastItem("item_armlet")
-						Sleep(ranges[2])
-						Sleep(200,"fast")
-					end
-					-- ➜ Madness item
-					if item[11] and item[11]:CanBeCasted() then
-						me:SafeCastItem("item_mask_of_madness")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Urn of Shadows item
-					if item[12] and item[12]:CanBeCasted() then
-						me:CastItem("item_urn_of_shadows",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Halberd item
-					if item[9] and item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() then
-						me:CastItem("item_heavens_halberd",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Medallion of courage item
-					if item[10] and item[10].state == LuaEntityItem.STATE_READY and item[10]:CanBeCasted() then
-						me:CastItem("item_medallion_of_courage",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Blademail item
-					if item[6] and item[6]:CanBeCasted() then
-						me:SafeCastItem("item_blade_mail")
-						Sleep(100+me:GetTurnTime(enemy)*600)
-						return
-					end
-					-- ➜ Duel
-					if SleepCheck("duel2") and item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:DoesHaveModifier("modifier_abaddon_borrowed_time") then
+		if item[4]:CanBeCasted() then -- Check if have duel [FPS - option]
+			for i,enemy in ipairs(enemies) do
+				distance = GetDistance2D(me,enemy)
+				if enemy.health <= duelDamage and distance < ranges[3] and me.health >= myhp and item[4]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() or item[7] and SleepCheck("DelayCombo2") and Sleep("duelactive2") then
+					Sleep(200,"DelayCombo2")
+					-- ➜ Check if is abaddon
+					if enemy.classId == CDOTA_Unit_Hero_Abaddon and enemy:GetAbility(4).cd > 5 then
+						-- ➜ Press the attack
+						if item[3]:CanBeCasted() and SleepCheck("castattack") then
+							me:CastAbility(item[3],me)
+							Sleep(100,"castattack")
+							Sleep(200,"attack-duel")
+							return
+						end
+						--  ➜ Blink dagger
+						if item[2] and item[2]:CanBeCasted() then
+							me:CastAbility(item[2],enemy.position)
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Abyssal item
+						if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() and enemy:IsLinkensProtected() then
+							me:CastItem("item_abyssal_blade",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Armlet item
+						if item[5] and item[5]:CanBeCasted() and not item[1] and SleepCheck("Armlet_use_delay2") then
+							me:SafeCastItem("item_armlet")
+							Sleep(ranges[2])
+							Sleep(200,"Armlet_use_delay2")
+						end
+						-- ➜ Madness item
+						if item[11] and item[11]:CanBeCasted() then
+							me:SafeCastItem("item_mask_of_madness")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+							end
+						-- ➜ Urn of Shadows item
+						if item[12] and item[12]:CanBeCasted() then
+							me:CastItem("item_urn_of_shadows",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Halberd item
+						if item[9] and item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() then
+							me:CastItem("item_heavens_halberd",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Medallion of courage item
+						if item[10] and item[10].state == LuaEntityItem.STATE_READY and item[10]:CanBeCasted() then
+							me:CastItem("item_medallion_of_courage",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Blademail item
+						if item[6] and item[6]:CanBeCasted() then
+							me:SafeCastItem("item_blade_mail")
+							Sleep(100+me:GetTurnTime(enemy)*600)
+							return
+						end
+						-- ➜ Duel
+						if SleepCheck("duel2") and item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:DoesHaveModifier("modifier_abaddon_borrowed_time") then
 							me:CastAbility(item[4],enemy)
 							Sleep(100,"castduel")
+							Sleep(2000,"duelactive2")
 							return
-					end
-				else if enemy.classId ~= CDOTA_Unit_Hero_Abaddon then
-					-- ➜ Press the attack
-					if item[3]:CanBeCasted() and SleepCheck("castattack") then
-						me:CastAbility(item[3],me)
-						Sleep(100,"castattack")
-						Sleep(200,"attack-duel")
-						return
-					end
-					--  ➜ Blink dagger
-					if item[2] and item[2]:CanBeCasted() then
-						me:CastAbility(item[2],enemy.position)
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Abyssal item
-					if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() and enemy:IsLinkensProtected() then
-						me:CastItem("item_abyssal_blade",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Armlet item
-					if item[5] and item[5]:CanBeCasted() and not item[1] then
-						me:SafeCastItem("item_armlet")
-						Sleep(ranges[2])
-					end
-					-- ➜ Madness item
-					if item[11] and item[11]:CanBeCasted() then
-						me:SafeCastItem("item_mask_of_madness")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Urn of Shadows item
-					if item[12] and item[12]:CanBeCasted() then
-						me:CastItem("item_urn_of_shadows",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Halberd item
-					if item[9] and item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() then
-						me:CastItem("item_heavens_halberd",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Medallion of courage item
-					if item[10] and item[10].state == LuaEntityItem.STATE_READY and item[10]:CanBeCasted() then
-						me:CastItem("item_medallion_of_courage",enemy)
-						Sleep(100,"duel2")
-						Sleep(100+me:GetTurnTime(enemy)*500)
-						return
-					end
-					-- ➜ Blademail item
-					if item[6] and item[6]:CanBeCasted() then
-						me:SafeCastItem("item_blade_mail")
-						Sleep(100+me:GetTurnTime(enemy)*600)
-						return
-					end
-					-- ➜ Duel
-					if SleepCheck("duel2") and item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:DoesHaveModifier("modifier_abaddon_borrowed_time") then
-							me:CastAbility(item[4],enemy)
-							Sleep(100,"castduel")
+						end
+					else if enemy.classId ~= CDOTA_Unit_Hero_Abaddon then
+						-- ➜ Press the attack
+						if item[3]:CanBeCasted() and SleepCheck("castattack") then
+							me:CastAbility(item[3],me)
+							Sleep(100,"castattack")
+							Sleep(200,"attack-duel")
 							return
-					end
+						end
+						--  ➜ Blink dagger
+						if item[2] and item[2]:CanBeCasted() then
+							me:CastAbility(item[2],enemy.position)
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Abyssal item
+						if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() and enemy:IsLinkensProtected() then
+							me:CastItem("item_abyssal_blade",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Armlet item
+						if item[5] and item[5]:CanBeCasted() and not item[1] and SleepCheck("Armlet_use_delay2") then
+							me:SafeCastItem("item_armlet")
+							Sleep(ranges[2])
+							Sleep(200,"Armlet_use_delay2")
+						end
+						-- ➜ Madness item
+						if item[11] and item[11]:CanBeCasted() then
+							me:SafeCastItem("item_mask_of_madness")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Urn of Shadows item
+						if item[12] and item[12]:CanBeCasted() then
+							me:CastItem("item_urn_of_shadows",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Halberd item
+						if item[9] and item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() then
+							me:CastItem("item_heavens_halberd",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Medallion of courage item
+						if item[10] and item[10].state == LuaEntityItem.STATE_READY and item[10]:CanBeCasted() then
+							me:CastItem("item_medallion_of_courage",enemy)
+							Sleep(100,"duel2")
+							Sleep(100+me:GetTurnTime(enemy)*500)
+							return
+						end
+						-- ➜ Blademail item
+						if item[6] and item[6]:CanBeCasted() then
+							me:SafeCastItem("item_blade_mail")
+							Sleep(100+me:GetTurnTime(enemy)*600)
+							return
+						end
+						-- ➜ Duel
+						if SleepCheck("duel2") and item[4]:CanBeCasted() and SleepCheck("castduel") and SleepCheck("attack-duel") and not enemy:IsLinkensProtected() and not enemy:IsPhysDmgImmune() and not enemy:DoesHaveModifier("modifier_abaddon_borrowed_time") then
+								me:CastAbility(item[4],enemy)
+								Sleep(100,"castduel")
+								Sleep(2000,"duelactive2")
+								return
+						end
 					end
 				end
 				Sleep(500,"onetime")
+				end
 			end
 		end
 	end	
