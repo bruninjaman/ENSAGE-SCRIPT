@@ -1,4 +1,4 @@
---<<Legion commander V1.0A ✰ - by ☢bruninjaman☢>>--
+--<<Legion commander V1.0B ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Reworked version.
 ☑ Some new functions and more performance.
@@ -10,6 +10,7 @@
 ☑ Show if enemy is on blink dagger range and your target.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.0B - Thursday, February 28, 2015 - Option for Low Resolution screen and Hidemessage option.
 ➩ V1.0A - Thursday, February 26, 2015 - New Reworked Version Released.
 ]]
 
@@ -26,13 +27,17 @@ config:SetParameter("toggleKey", "F", config.TYPE_HOTKEY)
 config:SetParameter("BlinkComboKey", "D", config.TYPE_HOTKEY)
 config:SetParameter("StopComboKey", "S", config.TYPE_HOTKEY)
 config:SetParameter("AutoDuelKey", "T", config.TYPE_HOTKEY)
+config:SetParameter("lowResolution", false)
+config:SetParameter("hidemessage", false)
 config:Load()
 
 local toggle = {
-			config.AutoDuelKey,     -- ➜ Auto Duel Key     --  toggle[1]
-			config.toggleKey,       -- ➜ toggle Key        --  toggle[2]
-			config.BlinkComboKey,   -- ➜ blink Combo Key   --  toggle[3]
-			config.StopComboKey,    -- ➜ Stop Combo Key    --  toggle[4]
+			config.AutoDuelKey,     -- ➜ Auto Duel Key         --  toggle[1]
+			config.toggleKey,       -- ➜ toggle Key            --  toggle[2]
+			config.BlinkComboKey,   -- ➜ blink Combo Key       --  toggle[3]
+			config.StopComboKey,    -- ➜ Stop Combo Key        --  toggle[4]
+			config.lowResolution,   -- ➜ Low Resolution Option --  toggle[5]
+			config.hidemessage,     -- ➜ Hide TXT              --  toggle[6]
 }
 
 -- Global Variables --
@@ -56,6 +61,7 @@ local codes = {
 local x,y            = 1150, 50
 local monitor        = client.screenSize.x/1600
 local F14            = drawMgr:CreateFont("F14","Franklin Gothic Medium",17,800) 
+local F12            = drawMgr:CreateFont("F12","Franklin Gothic Medium",12,10)
 local statusText     = drawMgr:CreateText(x*monitor,y*monitor,0xA4A4A4FF,"Finding Black King Bar - Blink Combo - (".. string.char(toggle[3]) ..")",F14) statusText.visible  = false
 local statusText2    = drawMgr:CreateText(x-1250*monitor,y*monitor,0xF7FE2EFF,"Legion Commander Script",F14) statusText2.visible = false
 local statusText3    = drawMgr:CreateText(x-1240*monitor,y+20*monitor,0x848484FF,"Auto duel (".. string.char(toggle[1]) ..") - No Duel",F14) statusText3.visible = false
@@ -74,9 +80,20 @@ function onLoad()
 		if not me or me.classId ~= CDOTA_Unit_Hero_Legion_Commander then 
 			script:Disable()
 		else
-			statusText3.visible = true
-			statusText2.visible = true
-			statusText.visible  = true 
+			if toggle[5] then
+				statusText     = drawMgr:CreateText((x-150)*monitor,(y+10)*monitor,0xA4A4A4FF,"Finding Black King Bar - Blink Combo - (".. string.char(toggle[3]) ..")",F12) statusText.visible  = false
+				statusText2    = drawMgr:CreateText((x-1100)*monitor,(y+10)*monitor,0xF7FE2EFF,"Legion Commander Script",F12) statusText2.visible = false
+				statusText3    = drawMgr:CreateText((x-1100)*monitor,(y+40)*monitor,0x848484FF,"Auto duel (".. string.char(toggle[1]) ..") - No Duel",F12) statusText3.visible = false
+			end
+			if toggle[6] then
+				statusText3.visible = false
+				statusText2.visible = false
+				statusText.visible  = false
+			else
+				statusText3.visible = true
+				statusText2.visible = true
+				statusText.visible  = true 
+			end
 			codes[5] = true
 			script:RegisterEvent(EVENT_TICK,Main)
 			script:RegisterEvent(EVENT_KEY,Key)
@@ -96,7 +113,7 @@ function Key(msg,code)
 		me:GetAbility(4)                   -- ➜ skill[1] -- DUEL
 	}
 	if client.chat or client.console or client.loading then return end
-	if item[1] and codes[1] then
+	if item[1] and codes[1] and not toggle[6] then
 		statusText.text = "Black King Bar - Enable - (" .. string.char(toggle[2]) .. ")   Blink Combo - (" .. string.char(toggle[3]) .. ") "
 		codes[1] = false
 		codes[3] = true
@@ -109,7 +126,7 @@ function Key(msg,code)
 		bkb2.entityPosition    = Vector(0,0,me.healthbarOffset)
 		bkb2.textureId         = drawMgr:GetTextureId("NyanUI/items/translucent/black_king_bar_t25")
 	end
-	if IsKeyDown(toggle[2]) and SleepCheck("CD_toggle2") then
+	if IsKeyDown(toggle[2]) and SleepCheck("CD_toggle2") and not toggle[6] then
 		codes[2] = not codes[2]
 		Sleep(500,"CD_toggle2")
 		if codes[2] then
@@ -147,7 +164,7 @@ function Key(msg,code)
 		codes[4] = false
 	end
 	------- Auto duel toggle ----------
-	if IsKeyDown(toggle[1]) and SleepCheck("CD_toggle1") and skill[1].level > 0 then
+	if IsKeyDown(toggle[1]) and SleepCheck("CD_toggle1") and skill[1].level > 0 and not toggle[6] then
 		codes[7] = not codes[7]
 		Sleep(500,"CD_toggle1")
 		if codes[7] then
