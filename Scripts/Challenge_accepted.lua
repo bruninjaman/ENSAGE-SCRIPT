@@ -239,7 +239,7 @@ function Main(tick)
 	----------- Auto Arrows ------------
 	if GetDistance2D(me,target) < 1000 and toggle[7] and target and target.visible and target.alive and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and not target:IsMagicDmgImmune() and not target:CanReincarnate() and not target:IsIllusion() and SleepCheck("autoarrowsleep") then
 		AutoArrows()
-		Sleep(200,"autoarrowsleep")
+		Sleep(50,"autoarrowsleep")
 	end
 end
 
@@ -256,7 +256,7 @@ function AutoArrows()
 		if arrowdamagetotal < arrowdamage[skill[1].level] or arrowdamagetotal == nil then
 			arrowdamagetotal = arrowdamage[skill[1].level]
 		end
-		if GetDistance2D(me,enemy) < 1000 and enemy.health <= ((arrowdamagetotal * (1 - enemy.dmgResist)) * 0.8) and skill[1]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() then
+		if GetDistance2D(me,enemy) < 1000 and enemy.health <= ((arrowdamagetotal * (1 - enemy.dmgResist)) * 0.8) and enemy.alive and enemy.visible and skill[1]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() then
 			me:CastAbility(skill[1],enemy.position)
 			Sleep(skill[1]:FindCastPoint()*500)
 		end
