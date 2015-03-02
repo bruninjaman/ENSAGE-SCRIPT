@@ -53,7 +53,7 @@ local duelDamage      = 0
 local bonusCreep      = {14,16,18,20}
 local bonusHero       = {20,35,50,65}
 local arrowdamage     = {40,80,120,160}
-local aroowdamagetotal = 0
+local arrowdamagetotal = 0
 
 local codes = {
 	true,  -- codes[1]
@@ -239,7 +239,7 @@ function Main(tick)
 	----------- Auto Arrows ------------
 	if GetDistance2D(me,target) < 1000 and toggle[7] and target and target.visible and target.alive and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and not target:IsMagicDmgImmune() and not target:CanReincarnate() and not target:IsIllusion() and SleepCheck("autoarrowsleep") then
 		AutoArrows()
-		Sleep(800,"autoarrowsleep")
+		Sleep(200,"autoarrowsleep")
 	end
 end
 
@@ -248,12 +248,15 @@ function AutoArrows()
 	local enemies = entityList:GetEntities({type=LuaEntity.TYPE_HERO, alive=true, visible = true, team=me:GetEnemyTeam()})
 	local heroDmg = nil
 	local creepDmg = nil
-	local aroowdamagetotal = nil
+	local arrowdamagetotal = nil
 	for i,enemy in ipairs(enemies) do
 		heroDmg  = #entityList:GetEntities(function (v) return v.type == LuaEntity.TYPE_HERO and v.alive and v.team ~= me.team and v.visible and v.health > 0 and GetDistance2D(enemy,v) < 330 end)*bonusHero[skill[1].level]
 		creepDmg = #entityList:GetEntities(function (v) return ((v.type == LuaEntity.TYPE_CREEP and v.classId ~= 292 and not v.ancient) or v.classId == CDOTA_Unit_VisageFamiliar or v.classId == CDOTA_Unit_Undying_Zombie or v.classId == CDOTA_Unit_SpiritBear or v.classId == CDOTA_Unit_Broodmother_Spiderling or v.classId == CDOTA_Unit_Hero_Beastmaster_Boar or v.classId == CDOTA_Unit_Hero_Beastmaster_Hawk or v.classId == CDOTA_BaseNPC_Invoker_Forged_Spirit) and v.team ~= me.team and v.alive and v.visible and v.health > 0 and GetDistance2D(enemy,v) < 350 end)*bonusCreep[skill[1].level]
-		aroowdamagetotal = (heroDmg + creepDmg + arrowdamage[skill[1].level])
-		if GetDistance2D(me,enemy) < 1000 and enemy.health <= ((aroowdamagetotal * (1 - enemy.dmgResist)) * 0.8) and skill[1]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() then
+		arrowdamagetotal = (heroDmg + creepDmg + arrowdamage[skill[1].level])
+		if arrowdamagetotal < arrowdamage[skill[1].level] or arrowdamagetotal == nil then
+			arrowdamagetotal = arrowdamage[skill[1].level]
+		end
+		if GetDistance2D(me,enemy) < 1000 and enemy.health <= ((arrowdamagetotal * (1 - enemy.dmgResist)) * 0.8) and skill[1]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() then
 			me:CastAbility(skill[1],enemy.position)
 			Sleep(skill[1]:FindCastPoint()*500)
 		end
