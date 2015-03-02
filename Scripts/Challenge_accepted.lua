@@ -1,4 +1,4 @@
---<<Legion commander V1.0B ✰ - by ☢bruninjaman☢>>--
+--<<Legion commander V1.0C ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Reworked version.
 ☑ Some new functions and more performance.
@@ -10,6 +10,7 @@
 ☑ Show if enemy is on blink dagger range and your target.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.0C - Monday, March 2, 2015 - Increased speed of combo and Blink dagger will only be used if enemy is out of duel range. Added auto OverwhelmingOdds.
 ➩ V1.0B - Thursday, February 28, 2015 - Option for Low Resolution screen and Hidemessage option.
 ➩ V1.0A - Thursday, February 26, 2015 - New Reworked Version Released.
 ]]
@@ -29,6 +30,7 @@ config:SetParameter("StopComboKey", "S", config.TYPE_HOTKEY)
 config:SetParameter("AutoDuelKey", "T", config.TYPE_HOTKEY)
 config:SetParameter("lowResolution", false)
 config:SetParameter("hidemessage", false)
+config:SetParameter("OverwhelmingOdds", true)
 config:Load()
 
 local toggle = {
@@ -38,6 +40,7 @@ local toggle = {
 			config.StopComboKey,    -- ➜ Stop Combo Key        --  toggle[4]
 			config.lowResolution,   -- ➜ Low Resolution Option --  toggle[5]
 			config.hidemessage,     -- ➜ Hide TXT              --  toggle[6]
+			config.OverwhelmingOdds,-- ➜ Hide TXT              --  toggle[7]
 }
 
 -- Global Variables --
@@ -47,6 +50,10 @@ local skill    = nil
 local me       = nil
 local duelDamageTable = {}
 local duelDamage      = 0
+local bonusCreep      = {14,16,18,20}
+local bonusHero       = {20,35,50,65}
+local arrowdamage     = {40,80,120,160}
+local aroowdamagetotal = 0
 
 local codes = {
 	true,  -- codes[1]
@@ -182,6 +189,7 @@ end
 function Main(tick)
 	me = entityList:GetMyHero()
 	if not me then return end
+	if not SleepCheck() then return end
 	target = targetFind:GetClosestToMouse(100)
 	item = {
 		me:DoesHaveModifier("modifier_item_armlet_unholy_strength"), -- ➜ item[1]
@@ -228,9 +236,31 @@ function Main(tick)
 		duelDamage = (duelDamageTable[1] * 0.7)
 		AutoDuel()
 	end
+	----------- Auto Arrows ------------
+	if GetDistance2D(me,target) < 1000 and toggle[7] and target and target.visible and target.alive and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and not target:IsMagicDmgImmune() and not target:CanReincarnate() and not target:IsIllusion() then
+		AutoArrows()
+		Sleep(800)
+	end
 end
 
 -- ✖ Functions ✖ --
+function AutoArrows()
+	local enemies = entityList:GetEntities({type=LuaEntity.TYPE_HERO, alive=true, visible = true, team=me:GetEnemyTeam()})
+	local heroDmg = nil
+	local creepDmg = nil
+	local aroowdamagetotal = nil
+	for i,enemy in ipairs(enemies) do
+		heroDmg  = #entityList:GetEntities(function (v) return v.type == LuaEntity.TYPE_HERO and v.alive and v.team ~= me.team and v.visible and v.health > 0 and GetDistance2D(enemy,v) < 330 end)*bonusHero[skill[1].level]
+		creepDmg = #entityList:GetEntities(function (v) return ((v.type == LuaEntity.TYPE_CREEP and v.classId ~= 292 and not v.ancient) or v.classId == CDOTA_Unit_VisageFamiliar or v.classId == CDOTA_Unit_Undying_Zombie or v.classId == CDOTA_Unit_SpiritBear or v.classId == CDOTA_Unit_Broodmother_Spiderling or v.classId == CDOTA_Unit_Hero_Beastmaster_Boar or v.classId == CDOTA_Unit_Hero_Beastmaster_Hawk or v.classId == CDOTA_BaseNPC_Invoker_Forged_Spirit) and v.team ~= me.team and v.alive and v.visible and v.health > 0 and GetDistance2D(enemy,v) < 350 end)*bonusCreep[skill[1].level]
+		aroowdamagetotal = (heroDmg + creepDmg + arrowdamage[skill[1].level])
+		if GetDistance2D(me,enemy) < 1000 and enemy.health <= ((aroowdamagetotal * (1 - enemy.dmgResist)) * 0.8) and skill[1]:CanBeCasted() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() and not enemy:IsLinkensProtected() then
+			me:CastAbility(skill[1],enemy.position)
+			Sleep(skill[1]:FindCastPoint()*500)
+		end
+	end
+end
+
+
 function AutoDuel()
 	local myhp = (me.maxHealth * 0.4)
 	local range = 400
@@ -275,7 +305,7 @@ function BlinkCombo()
 	if me:DoesHaveModifier("modifier_item_invisibility_edge_windwalk") then
 		codes[6] = true
 		me:Attack(target)
-		Sleep(100)
+		Sleep(100+me:GetTurnTime(target)*500)
 	else
 		codes[6] = false
 	end
@@ -284,25 +314,21 @@ function BlinkCombo()
 		if skill[2]:CanBeCasted() then
 			me:CastAbility(skill[2],me)
 			Sleep(skill[2]:FindCastPoint()*500)
-			return
 		end
 		-- ➜ Blink dagger
-		if item[2] and item[2]:CanBeCasted() then
+		if item[2] and item[2]:CanBeCasted() and GetDistance2D(me,target) > 150 then
 			me:CastAbility(item[2],target.position)
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Check if bkb is active or inactive
 		if codes[3] and item[5] and item[5]:CanBeCasted() then
 			me:SafeCastItem("item_black_king_bar")
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Mjolnir item
 		if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() then
 			me:CastAbility(item[7],me)
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Armlet item
 		if item[3] and item[3]:CanBeCasted() and not item[1] and SleepCheck("Armlet_use_delay") then
@@ -314,41 +340,35 @@ function BlinkCombo()
 		if item[10] and item[10]:CanBeCasted() then
 			me:SafeCastItem("item_mask_of_madness")
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Abyssal item
 		if item[6] and item[6].state == LuaEntityItem.STATE_READY and item[6]:CanBeCasted() then
 			me:CastItem("item_abyssal_blade",target)
 			Sleep(100,"duel")
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Urn of Shadows item
 		if item[11] and item[11]:CanBeCasted() then
 			me:CastItem("item_urn_of_shadows",target)
 			Sleep(100,"duel")
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Halberd item
 		if item[8] and item[8].state == LuaEntityItem.STATE_READY and item[8]:CanBeCasted() then
 			me:CastItem("item_heavens_halberd",target)
 			Sleep(100,"duel")
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Medallion of courage item
 		if item[9] and item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() then
 			me:CastItem("item_medallion_of_courage",target)
 			Sleep(100,"duel")
 			Sleep(100+me:GetTurnTime(target)*500)
-			return
 		end
 		-- ➜ Blademail item
 		if item[4] and item[4]:CanBeCasted() then
 			me:SafeCastItem("item_blade_mail")
 			Sleep(100+me:GetTurnTime(target)*600)
-			return
 		end
 		-- ➜ Duel Hability
 		if target.classId == CDOTA_Unit_Hero_Abaddon and target:GetAbility(4).cd > 5 then
@@ -368,7 +388,6 @@ function BlinkCombo()
 		end
 		codes[4] = false
 		Sleep(200)
-	    return
 	else
 	    return
 	end
