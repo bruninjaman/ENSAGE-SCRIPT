@@ -237,9 +237,9 @@ function Main(tick)
 		AutoDuel()
 	end
 	----------- Auto Arrows ------------
-	if GetDistance2D(me,target) < 1000 and toggle[7] and target and target.visible and target.alive and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and not target:IsMagicDmgImmune() and not target:CanReincarnate() and not target:IsIllusion() then
+	if GetDistance2D(me,target) < 1000 and toggle[7] and target and target.visible and target.alive and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and not target:IsMagicDmgImmune() and not target:CanReincarnate() and not target:IsIllusion() and SleepCheck("autoarrowsleep") then
 		AutoArrows()
-		Sleep(800)
+		Sleep(800,"autoarrowsleep")
 	end
 end
 
@@ -314,11 +314,13 @@ function BlinkCombo()
 		if skill[2]:CanBeCasted() then
 			me:CastAbility(skill[2],me)
 			Sleep(skill[2]:FindCastPoint()*500)
+			print("here2")
 		end
 		-- ➜ Blink dagger
 		if item[2] and item[2]:CanBeCasted() and GetDistance2D(me,target) > 150 then
 			me:CastAbility(item[2],target.position)
 			Sleep(100+me:GetTurnTime(target)*500)
+			print("here3")
 		end
 		-- ➜ Check if bkb is active or inactive
 		if codes[3] and item[5] and item[5]:CanBeCasted() then
@@ -375,14 +377,14 @@ function BlinkCombo()
 			if SleepCheck("duel") and skill[3]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
 				me:CastAbility(skill[3],target)
 				Sleep(skill[2]:FindCastPoint()*800)
-				Sleep(2000,"duelactive")
+				Sleep(80,"duelactive")
 				codes[4] = false
 			end
 		elseif target.classId ~= CDOTA_Unit_Hero_Abaddon then
 			if SleepCheck("duel") and skill[3]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
 				me:CastAbility(skill[3],target)
 				Sleep(skill[2]:FindCastPoint()*800)
-				Sleep(2000,"duelactive")
+				Sleep(80,"duelactive")
 				codes[4] = false
 			end
 		end
