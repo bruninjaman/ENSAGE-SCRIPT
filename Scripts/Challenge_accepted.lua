@@ -70,8 +70,8 @@ local monitor        = client.screenSize.x/1600
 local F14            = drawMgr:CreateFont("F14","Franklin Gothic Medium",17,800) 
 local F12            = drawMgr:CreateFont("F12","Franklin Gothic Medium",12,10)
 local statusText     = drawMgr:CreateText(x*monitor,y*monitor,0xA4A4A4FF,"Finding Black King Bar - Blink Combo - (".. string.char(toggle[3]) ..")",F14) statusText.visible  = false
-local statusText2    = drawMgr:CreateText(x-1250*monitor,y*monitor,0xF7FE2EFF,"Legion Commander Script",F14) statusText2.visible = false
-local statusText3    = drawMgr:CreateText(x-1240*monitor,y+20*monitor,0x848484FF,"Auto duel (".. string.char(toggle[1]) ..") - No Duel",F14) statusText3.visible = false
+local statusText2    = drawMgr:CreateText((x-1140)*monitor,y*monitor,0xF7FE2EFF,"Legion Commander Script",F14) statusText2.visible = false
+local statusText3    = drawMgr:CreateText((x-1130)*monitor,(y+20)*monitor,0x848484FF,"Auto duel (".. string.char(toggle[1]) ..") - No Duel",F14) statusText3.visible = false
 -- ➜ marked for death text
 local legion         = drawMgr:CreateFont("Font","Fixedsys",14,550)
 local ikillyou       = drawMgr:CreateText(-50,-50,-1,"Marked for death!",legion); ikillyou.visible = false
