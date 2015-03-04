@@ -61,7 +61,6 @@ function onClose()
 	collectgarbage("collect")
 	if registered then
 		script:UnregisterEvent(Main)
-		script:UnregisterEvent(Key)
 		registered = false
 	end
 end
