@@ -1,0 +1,185 @@
+--<<Necrophos V1.0A ✰ - by ☢bruninjaman☢>>--
+--[[
+☑ Script requested by rivaillle.
+☛ This script do?
+☑ Use Dagon, Death Pulse if enemy is in range and ult.
+☑ Show If enemy is kilable by combo.
+********************************************************************************
+♜ Change Log ♜
+➩ V1.0A - Wednesday, March 4, 2015 - Script Released.
+]]
+
+-- ✖ Libraries ✖ --
+require("libs.Utils")
+require("libs.ScriptConfig")
+require("libs.TargetFind")
+
+-- ✖ config ✖ --
+config = ScriptConfig.new()
+config:SetParameter("ComboKey", "D", config.TYPE_HOTKEY)
+config:Load()
+
+local ultcombo = config.ComboKey
+
+-- Global Variables --
+local me = nil
+local Combodmg = 0
+local healthtokill = 0
+local registered = false
+local target = nil
+local keyactive = false
+local F11 = drawMgr:CreateFont("Font","Fixedsys",14,550)
+local Killtext = drawMgr:CreateText(-50,-50,0xB40404FF,"Health to kill:".. (healthtokill) .." <--",F11) Killtext.visible = false
+
+-- ✖ When you start the game (check hero) ✖ --
+function onLoad()
+	if PlayingGame() then
+		me = entityList:GetMyHero()
+		if not me or me.classId ~= CDOTA_Unit_Hero_Necrolyte then 
+			script:Disable()
+			registered = false
+		else
+			registered = true
+			script:RegisterEvent(EVENT_TICK,Main)
+			script:RegisterEvent(EVENT_KEY,Key)
+			script:UnregisterEvent(onLoad)
+		end
+	end 
+end
+
+-- ✖ pressing 'D' ✖ --
+function Key(msg,code)
+	me = entityList:GetMyHero()
+	if not me then return end
+	if client.chat or client.console or client.loading then return end
+	if code == ultcombo then
+		keyactive = (msg == KEY_DOWN)
+	end
+end
+
+-- ✖ Starting Combo ✖ --
+function Main(tick)
+	me = entityList:GetMyHero()
+	if not me then return end
+	if not SleepCheck() then return end
+	target = targetFind:GetClosestToMouse(100)
+	if me:GetAbility(4).level > 0  and target and target.alive and target.visible then
+		ScytheCombo()
+		healthtokill = ScytheCombo()
+	end
+	if me:GetAbility(4).level > 0 then
+		showdamage()
+	end
+end
+
+-- ✖ END OF GAME  ✖ --
+function onClose()
+	collectgarbage("collect")
+	if registered then
+		script:UnregisterEvent(Main)
+		script:UnregisterEvent(Key)
+		registered = false
+	end
+end
+
+-- functions  \/      \/     \/       \/      \/      \/      \/ --
+function showdamage()
+	if target and target.alive and target.visible and GetDistance2D(me,target) < 2000 then
+		Killtext.entity = target
+		Killtext.entityPosition = Vector(0,0,target.healthbarOffset)
+		Killtext.visible = true
+		Killtext.text = "Health to kill:".. (healthtokill) ..""
+	else
+		Killtext.visible = false
+	end
+end
+
+-- Scythecombo variables
+local dagon = nil
+local ultimate = nil
+local ethereal = nil
+local DeathPulse = nil
+local dmgD = 0
+local dmgDP = 0
+local dmgult = 0
+local dmgethereal = 0
+local DeathPulseSkill = { 75,125,200,275 }
+local manapoint = 0
+local aghanim = nil
+local ultlvl = { 0.4,0.6,0.9 }
+local Aultlvl = { 0.6,0.9,1.2 }
+local etherealready = false
+
+function ScytheCombo()
+	dagon = me:FindDagon()
+	ethereal = me:FindItem("item_ethereal_blade")
+	ultimate = me:GetAbility(4)
+	DeathPulse = me:GetAbility(1)
+	manapoint = 0
+	aghanim = me:FindItem("item_ultimate_scepter")
+	if ethereal and ethereal:CanBeCasted() then
+		dmgethereal = target:DamageTaken((2 * me.intellectTotal + 75),DAMAGE_MAGC,me)
+		manapoint = manapoint + DeathPulse.manacost
+		etherealready = true
+	else
+		dmgethereal = 0
+		etherealready = false
+	end 
+	if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
+		dmgDP = target:DamageTaken((DeathPulseSkill[DeathPulse.level]),DAMAGE_MAGC,me) 
+		manapoint = manapoint + DeathPulse.manacost
+		if etherealready then
+			dmgDP = dmgDP + (dmgDP * 0.4)
+		end
+	else
+		dmgDP = 0
+	end
+	if dagon and dagon:CanBeCasted() then
+		dmgD = target:DamageTaken((dagon:GetSpecialData("damage")),DAMAGE_MAGC,me)
+		manapoint = manapoint + dagon.manacost
+		if etherealready then
+			dmgD = dmgD + (dmgD * 0.4)
+		end
+	else
+		dmgD = 0
+	end
+	if ultimate.level > 0 and ultimate:CanBeCasted() and not aghanim then
+		dmgult = ((target.maxHealth - target.health) * ultlvl[ultimate.level])
+		if etherealready then
+			dmgult = dmgult + (dmgult * 0.4)
+		end
+	elseif ultimate.level > 0 and ultimate:CanBeCasted() and aghanim then
+		dmgult = ((target.maxHealth - target.health) * Aultlvl[ultimate.level])
+		if etherealready then
+			dmgult = dmgult + (dmgult * 0.4)
+		end
+	else
+		dmgult = 0
+	end
+	Combodmg = (dmgDP + dmgethereal + dmgD + dmgult)
+	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < Combodmg and me.mana > manapoint and GetDistance2D(me,target) < 600 and not target:IsMagicDmgImmune() and target:CanDie()then
+		if not me:IsChanneling() and me:CanCast() then
+			if ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY then 
+				me:CastItem("item_ethereal_blade",target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+			if ultimate and ultimate:CanBeCasted() and not target:IsLinkensProtected() then
+				me:CastAbility(ultimate,target)
+				Sleep(ultimate:FindCastPoint()*800)
+			end
+			if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
+				me:SafeCastAbility(DeathPulse)
+				Sleep(DeathPulse:FindCastPoint()*800)
+			end
+			if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+				me:CastAbility(dagon,target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+	end
+	healthtokill = math.floor((target.health) - (dmgDP + dmgethereal + dmgD + dmgult))
+	return healthtokill
+end
+
+script:RegisterEvent(EVENT_CLOSE,onClose)
+script:RegisterEvent(EVENT_TICK,onLoad)
