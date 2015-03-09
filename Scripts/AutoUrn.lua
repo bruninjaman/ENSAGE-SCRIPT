@@ -1,4 +1,4 @@
---<<Auto Urn V1.0A ✰ - by ☢bruninjaman☢>>--
+--<<Auto Urn V1.0B ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Script Requested by monyaxd.
 ☛ This script do?
@@ -6,6 +6,7 @@
 ☑ You can change the configuration.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.0B - Monday, March 9, 2015 - fixed tp cancel and if is not alive.
 ➩ V1.0A - Tuesday, March 3, 2015 - New Reworked Version Released.
 ]]
 
@@ -44,11 +45,13 @@ function Main(tick)
 	me = entityList:GetMyHero()
 	if not me then return end
 	local enemies = entityList:GetEntities({type=LuaEntity.TYPE_HERO, alive=true, visible = true, team=me:GetEnemyTeam()})
-	for i,enemy in ipairs(enemies) do
-		if enemy and enemy.health <= urnHP and me:FindItem("item_urn_of_shadows") and GetDistance2D(me,enemy) < 950 and enemy.visible and enemy.alive and not me:IsChanneling() then
-			if me:FindItem("item_urn_of_shadows") and me:FindItem("item_urn_of_shadows"):CanBeCasted() then
-				me:CastItem("item_urn_of_shadows",enemy)
-				Sleep(100+me:GetTurnTime(enemy)*500)
+	if me.alive and not me:IsChanneling() then
+		for i,enemy in ipairs(enemies) do
+			if enemy and enemy.health <= urnHP and me:FindItem("item_urn_of_shadows") and GetDistance2D(me,enemy) < 950 and enemy.visible and enemy.alive and not me:IsChanneling() then
+				if me:FindItem("item_urn_of_shadows") and me:FindItem("item_urn_of_shadows"):CanBeCasted() then
+					me:CastItem("item_urn_of_shadows",enemy)
+					Sleep(100+me:GetTurnTime(enemy)*500)
+				end
 			end
 		end
 	end
