@@ -1,4 +1,4 @@
---<<Necrophos V1.0A ✰ - by ☢bruninjaman☢>>--
+--<<Necrophos V1.0C ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Script requested by rivaillle.
 ☛ This script do?
@@ -6,6 +6,8 @@
 ☑ Show If enemy is kilable by combo.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.0C - Monday, March 9, 2015 - Added Health bar and ultimate icon.
+➩ V1.0B - Wednesday, March 5, 2015 - Fixed Damage Calculation.
 ➩ V1.0A - Wednesday, March 4, 2015 - Script Released.
 ]]
 
@@ -25,11 +27,17 @@ local ultcombo = config.ComboKey
 local me = nil
 local Combodmg = 0
 local healthtokill = 0
+local percenthp = 0
 local registered = false
 local target = nil
 local keyactive = false
-local F11 = drawMgr:CreateFont("Font","Fixedsys",14,550)
-local Killtext = drawMgr:CreateText(-50,-50,0xB40404FF,"Health to kill:".. (healthtokill) .." <--",F11) Killtext.visible = false
+local F11 = drawMgr:CreateFont("F11","Verdana",24,600)
+local Killtext = drawMgr:CreateText(-20,-60,0xE61D1DFF,"Health to Kill: ".. (healthtokill) .." <--",F11) Killtext.visible = false
+local damagebg2 = drawMgr:CreateRect(-53, -35, 110, 2, 0xA4A4A4FF) damagebg2.visible = false
+local damagebg3 = drawMgr:CreateRect(-53, -35, 110, 2, 0xB40404FF) damagebg3.visible = false
+local damagebg = drawMgr:CreateRect(-53, -35, 110, 2, 0x00FF00FF) damagebg.visible = false
+local deadimg2 = drawMgr:CreateRect(-18,-62,34,33,0x1C1C1Cff) deadimg2.visible = false
+local deadimg = drawMgr:CreateRect(-16,-60,30,30,0x000000ff) deadimg.visible  = false
 
 -- ✖ When you start the game (check hero) ✖ --
 function onLoad()
@@ -87,10 +95,46 @@ function showdamage()
 	if target and target.alive and target.visible and GetDistance2D(me,target) < 2000 then
 		Killtext.entity = target
 		Killtext.entityPosition = Vector(0,0,target.healthbarOffset)
-		Killtext.visible = true
-		Killtext.text = "Health to kill:".. (healthtokill) ..""
+		damagebg.entity = target
+		damagebg.entityPosition = Vector(0,0,target.healthbarOffset)
+		damagebg2.entity = target
+		damagebg2.entityPosition = Vector(0,0,target.healthbarOffset)
+		damagebg3.entity = target
+		damagebg3.entityPosition = Vector(0,0,target.healthbarOffset)
+		deadimg2.entity = target
+		deadimg2.entityPosition = Vector(0,0,target.healthbarOffset)
+		deadimg.entity = target 
+		deadimg.entityPosition = Vector(0,0,target.healthbarOffset)
+		deadimg.textureId  = drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe")
+		if healthtokill > 0 then
+			Killtext.visible = true
+			damagebg.visible = true
+			damagebg2.visible = true
+			damagebg3.visible = true
+			deadimg2.visible = false
+			deadimg.visible = false
+			damagebg.w = percenthp
+			if SleepCheck("delay") and damagebg.visible then
+		        damagebg3.w = percenthp
+				Sleep(1000,"delay")
+			end
+			Killtext.color = 0xE61D1DFF
+			Killtext.text = "".. (healthtokill) ..""
+		else
+			Killtext.visible = false
+			damagebg.visible = false
+			deadimg.visible = true
+			deadimg2.visible = true
+			damagebg2.visible = false
+			damagebg3.visible = false
+		end
 	else
 		Killtext.visible = false
+		damagebg.visible = false
+		deadimg.visible = false
+		deadimg2.visible = false
+		damagebg2.visible = false
+		damagebg3.visible = false
 	end
 end
 
@@ -109,6 +153,9 @@ local aghanim = nil
 local ultlvl = { 0.4,0.6,0.9 }
 local Aultlvl = { 0.6,0.9,1.2 }
 local etherealready = false
+local predictedhp = 0
+local percent = 0
+local hptokill = 0
 
 function ScytheCombo()
 	dagon = me:FindDagon()
@@ -145,19 +192,22 @@ function ScytheCombo()
 	end
 	if ultimate.level > 0 and ultimate:CanBeCasted() and not aghanim then
 		dmgult = ((target.maxHealth - target.health) * ultlvl[ultimate.level])
+		percent = ultlvl[ultimate.level]
 		if etherealready then
 			dmgult = dmgult + (dmgult * 0.4)
 		end
 	elseif ultimate.level > 0 and ultimate:CanBeCasted() and aghanim then
 		dmgult = ((target.maxHealth - target.health) * Aultlvl[ultimate.level])
+		percent = Aultlvl[ultimate.level]
 		if etherealready then
 			dmgult = dmgult + (dmgult * 0.4)
 		end
 	else
 		dmgult = 0
 	end
-	Combodmg = (dmgDP + dmgethereal + dmgD + dmgult)
-	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < Combodmg and me.mana > manapoint and GetDistance2D(me,target) < 600 and not target:IsMagicDmgImmune() and target:CanDie()then
+	predictedhp = (target.health - (dmgethereal + dmgD + dmgDP))
+	combodmg = ((target.health - predictedhp) + ((target.maxHealth - predictedhp) * percent))
+	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < combodmg and me.mana > manapoint and GetDistance2D(me,target) < 600 and not target:IsMagicDmgImmune() and target:CanDie() then
 		if not me:IsChanneling() and me:CanCast() then
 			if ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY then 
 				me:CastItem("item_ethereal_blade",target)
@@ -177,7 +227,10 @@ function ScytheCombo()
 			end
 		end
 	end
-	healthtokill = math.floor((target.health) - (dmgDP + dmgethereal + dmgD + dmgult))
+	hptokill = (( percent / (1 + percent )) * target.maxHealth ) -- THANKS NOVA
+	hptokill = target:DamageTaken(hptokill,DAMAGE_MAGC,me)
+	healthtokill = math.floor((target.health - (dmgethereal + dmgD + dmgDP) - hptokill))
+	percenthp = math.floor(160*(healthtokill/target.maxHealth ))
 	return healthtokill
 end
 
