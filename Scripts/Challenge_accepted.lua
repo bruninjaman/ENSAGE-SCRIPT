@@ -1,4 +1,4 @@
---<<Legion commander V1.0C ✰ - by ☢bruninjaman☢>>--
+--<<Legion commander V1.0D ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Reworked version.
 ☑ Some new functions and more performance.
