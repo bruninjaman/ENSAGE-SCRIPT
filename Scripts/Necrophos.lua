@@ -1,4 +1,4 @@
---<<Necrophos V1.0C ✰ - by ☢bruninjaman☢>>--
+--<<Necrophos V1.0D ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Script requested by rivaillle.
 ☛ This script do?
@@ -6,6 +6,7 @@
 ☑ Show If enemy is kilable by combo.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.0D - Saturday, March 14, 2015 - ADDED no mana for full combo. Fixed don't use ult if dagon can kill or ethereal. Added Range ultimate and death pulse.
 ➩ V1.0C - Monday, March 9, 2015 - Added Health bar and ultimate icon.
 ➩ V1.0B - Wednesday, March 5, 2015 - Fixed Damage Calculation.
 ➩ V1.0A - Wednesday, March 4, 2015 - Script Released.
@@ -19,6 +20,7 @@ require("libs.TargetFind")
 -- ✖ config ✖ --
 config = ScriptConfig.new()
 config:SetParameter("ComboKey", "D", config.TYPE_HOTKEY)
+config:SetParameter("RangeEnable", true)
 config:Load()
 
 local ultcombo = config.ComboKey
@@ -29,10 +31,12 @@ local Combodmg = 0
 local healthtokill = 0
 local percenthp = 0
 local registered = false
+local RangeEnable = config.RangeEnable
 local target = nil
 local keyactive = false
 local F11 = drawMgr:CreateFont("F11","Verdana",24,600)
 local Killtext = drawMgr:CreateText(-20,-60,0xE61D1DFF,"Health to Kill: ".. (healthtokill) .." <--",F11) Killtext.visible = false
+local Killtext2 = drawMgr:CreateText(-50,-60,0x00BFFFFF,"NO MANA",F11) Killtext2.visible = false
 local damagebg2 = drawMgr:CreateRect(-53, -35, 110, 2, 0xA4A4A4FF) damagebg2.visible = false
 local damagebg3 = drawMgr:CreateRect(-53, -35, 110, 2, 0xB40404FF) damagebg3.visible = false
 local damagebg = drawMgr:CreateRect(-53, -35, 110, 2, 0x00FF00FF) damagebg.visible = false
@@ -74,9 +78,16 @@ function Main(tick)
 	if me:GetAbility(4).level > 0  and target and target.alive and target.visible then
 		ScytheCombo()
 		healthtokill = ScytheCombo()
+	else
+		Killtext2.visible = false
 	end
 	if me:GetAbility(4).level > 0 then
 		showdamage()
+	end
+	if RangeEnable then
+		local rangeultimate = Effect(me,"range_display")
+		local rangedeathpulse = Effect(me,"range_display")
+		DisplayRanges()
 	end
 end
 
@@ -86,11 +97,34 @@ function onClose()
 	if registered then
 		script:UnregisterEvent(Main)
 		script:UnregisterEvent(Key)
+		Killtext.visible = false
+		Killtext2.visible = false
+		damagebg2.visible = false
+		damagebg3.visible = false
+		damagebg.visible = false
+		deadimg2.visible = false
+		deadimg.visible  = false
 		registered = false
 	end
 end
 
 -- functions  \/      \/     \/       \/      \/      \/      \/ --
+function DisplayRanges()
+	ultimate = me:GetAbility(4)
+	DeathPulse = me:GetAbility(1)
+	if rangeultimate == nil or rangedeathpulse == nil then
+		rangeultimate = Effect(me,"range_display")
+		rangedeathpulse = Effect(me,"range_display")
+	end
+	if ultimate then
+		rangeultimate:SetVector( 1, Vector(600,0,0) )
+	end
+	if DeathPulse then
+		rangedeathpulse:SetVector( 1, Vector(475,0,0) )
+	end
+end
+
+
 function showdamage()
 	if target and target.alive and target.visible and GetDistance2D(me,target) < 2000 then
 		Killtext.entity = target
@@ -164,9 +198,20 @@ function ScytheCombo()
 	DeathPulse = me:GetAbility(1)
 	manapoint = 0
 	aghanim = me:FindItem("item_ultimate_scepter")
+	if ethereal then
+		manapoint = manapoint + ethereal.manacost
+	end
+	if DeathPulse.level > 0 and GetDistance2D(me,target) < 475 then
+		manapoint = manapoint + DeathPulse.manacost
+	end
+	if dagon then
+		manapoint = manapoint + dagon.manacost
+	end
+	if ultimate.level > 0 then
+		manapoint = manapoint + ultimate.manacost
+	end
 	if ethereal and ethereal:CanBeCasted() then
 		dmgethereal = target:DamageTaken((2 * me.intellectTotal + 75),DAMAGE_MAGC,me)
-		manapoint = manapoint + DeathPulse.manacost
 		etherealready = true
 	else
 		dmgethereal = 0
@@ -174,7 +219,6 @@ function ScytheCombo()
 	end 
 	if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
 		dmgDP = target:DamageTaken((DeathPulseSkill[DeathPulse.level]),DAMAGE_MAGC,me) 
-		manapoint = manapoint + DeathPulse.manacost
 		if etherealready then
 			dmgDP = dmgDP + (dmgDP * 0.4)
 		end
@@ -183,7 +227,6 @@ function ScytheCombo()
 	end
 	if dagon and dagon:CanBeCasted() then
 		dmgD = target:DamageTaken((dagon:GetSpecialData("damage")),DAMAGE_MAGC,me)
-		manapoint = manapoint + dagon.manacost
 		if etherealready then
 			dmgD = dmgD + (dmgD * 0.4)
 		end
@@ -207,25 +250,60 @@ function ScytheCombo()
 	end
 	predictedhp = (target.health - (dmgethereal + dmgD + dmgDP))
 	combodmg = ((target.health - predictedhp) + ((target.maxHealth - predictedhp) * percent))
-	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < combodmg and me.mana > manapoint and GetDistance2D(me,target) < 600 and not target:IsMagicDmgImmune() and target:CanDie() then
+	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < combodmg and GetDistance2D(me,target) < 600 and not target:IsMagicDmgImmune() and target:CanDie() then
 		if not me:IsChanneling() and me:CanCast() then
-			if ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY then 
+			me:Stop()
+			if ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY then
 				me:CastItem("item_ethereal_blade",target)
 				Sleep(100+me:GetTurnTime(target)*500)
-			end
-			if ultimate and ultimate:CanBeCasted() and not target:IsLinkensProtected() then
-				me:CastAbility(ultimate,target)
-				Sleep(ultimate:FindCastPoint()*800)
-			end
-			if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
-				me:SafeCastAbility(DeathPulse)
-				Sleep(DeathPulse:FindCastPoint()*800)
-			end
-			if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
-				me:CastAbility(dagon,target)
-				Sleep(100+me:GetTurnTime(target)*500)
+				if target.health < dmgD and target.alive then
+					if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+						me:CastAbility(dagon,target)
+						Sleep(100+me:GetTurnTime(target)*500)
+					end
+				else
+					if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+						me:CastAbility(dagon,target)
+						Sleep(100+me:GetTurnTime(target)*500)
+					end
+					if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
+						me:SafeCastAbility(DeathPulse)
+						Sleep(DeathPulse:FindCastPoint()*800)
+					end
+					if ultimate and ultimate:CanBeCasted() and not target:IsLinkensProtected() then
+						me:CastAbility(ultimate,target)
+						Sleep(ultimate:FindCastPoint()*800)
+					end
+				end
+			else
+				if target.health < dmgD then
+					if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+						me:CastAbility(dagon,target)
+						Sleep(100+me:GetTurnTime(target)*500)
+					end
+				else
+					if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+						me:CastAbility(dagon,target)
+						Sleep(100+me:GetTurnTime(target)*500)
+					end
+					if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
+						me:SafeCastAbility(DeathPulse)
+						Sleep(DeathPulse:FindCastPoint()*800)
+					end
+					if ultimate and ultimate:CanBeCasted() and not target:IsLinkensProtected() then
+						me:CastAbility(ultimate,target)
+						Sleep(ultimate:FindCastPoint()*800)
+					end
+				end
 			end
 		end
+	end
+	if me.mana < manapoint then
+		Killtext2.entity = me
+		Killtext2.entityPosition = Vector(0,0,me.healthbarOffset)
+		Killtext2.visible = true
+	else
+		Killtext2.visible = false
 	end
 	hptokill = (( percent / (1 + percent )) * target.maxHealth ) -- THANKS NOVA
 	hptokill = target:DamageTaken(hptokill,DAMAGE_MAGC,me)
