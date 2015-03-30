@@ -2,5 +2,6 @@
 bruninjaman scripts
 ==============
 Scripts for Heroes:       | Scripts Ensage:         | Libraries:
-:-----------              | :-----------            | :----------
-Challenge_accepted.lua    | :-----------            | :----------            
+Necrophos.lua             | AutoUrn.lua             | :----------
+Challenge_accepted.lua    | AutoVeilOfDiscord.lua   | :----------            
+:----------               | :----------              | :----------  
