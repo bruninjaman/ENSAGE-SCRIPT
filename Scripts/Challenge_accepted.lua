@@ -1,4 +1,4 @@
---<<Legion commander V1.0D ✰ - by ☢bruninjaman☢>>--
+--<<Legion commander V1.0E ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Reworked version.
 ☑ Some new functions and more performance.
@@ -10,6 +10,7 @@
 ☑ Show if enemy is on blink dagger range and your target.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.0E - Sunday, March 29, 2015 - Satanic use when your Health is < 50%. Fixed autoblink bug. Fixed no mana bug.
 ➩ V1.0D - Monday, March 9, 2015 - REMOVED AUTO DUEL(Because it isn't good.)  and OverHelmingOdds(Fix lag problem). Reworked itens Icons.
 ➩ V1.0C - Monday, March 2, 2015 - Increased speed of combo and Blink dagger will only be used if enemy is out of duel range. Added auto OverwhelmingOdds.
 ➩ V1.0B - Thursday, February 28, 2015 - Option for Low Resolution screen and Hidemessage option.
@@ -30,6 +31,7 @@ config:SetParameter("BlinkComboKey", "D", config.TYPE_HOTKEY)
 config:SetParameter("StopComboKey", "S", config.TYPE_HOTKEY)
 config:SetParameter("lowResolution", false)
 config:SetParameter("hidemessage", false)
+config:SetParameter("manacheck", true)
 config:Load()
 
 local toggle = {
@@ -45,6 +47,7 @@ local target   = nil
 local item     = nil
 local skill    = nil
 local me       = nil
+local manacheck = config.manacheck
 
 local codes = {
 	true,  -- codes[1]
@@ -183,6 +186,7 @@ function Main(tick)
 		me:FindItem("item_medallion_of_courage"),                    -- ➜ item[9]
 		me:FindItem("item_mask_of_madness"),                         -- ➜ item[10]
 		me:FindItem("item_urn_of_shadows"),                          -- ➜ item[11]
+		me:FindItem("item_satanic"),                                 -- ➜ item[12]
 	}
 	skill = {
 		me:GetAbility(1),                                            -- ➜ skill[1] -- Arrows
@@ -205,6 +209,9 @@ function Main(tick)
 	end
 	if target and GetDistance2D(me,target) < 950 and item[11] then
 		Autourn()
+	end
+	if GetDistance2D(me,target) > 1200 then -- ➜ distance correction
+		codes[4] = false
 	end
 	if codes[4] and skill[3].level > 0 and target and target.visible and target.alive and me.alive and GetDistance2D(me,target) < 1200 and SleepCheck("DelayCombo") and SleepCheck("duelactive") then
 		Sleep(300,"DelayCombo")
@@ -236,6 +243,36 @@ function Autourn()
 end
 
 function BlinkCombo()
+	local manapool = 0
+	if manacheck then
+		if skill[2] and skill[2]:CanBeCasted() then
+			manapool = manapool + skill[2].manacost
+		end
+		if codes[3] and item[5] and item[5]:CanBeCasted() then
+			manapool = manapool + item[5].manacost
+		end
+		if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() then
+			manapool = manapool + item[7].manacost
+		end
+		if item[10] and item[10]:CanBeCasted() then
+			manapool = manapool + item[10].manacost
+		end
+		if item[6] and item[6].state == LuaEntityItem.STATE_READY and item[6]:CanBeCasted() then
+			manapool = manapool + item[6].manacost
+		end
+		if item[11] and item[11]:CanBeCasted() then
+			manapool = manapool + item[11].manacost
+		end
+		if item[8] and item[8].state == LuaEntityItem.STATE_READY and item[8]:CanBeCasted() then
+			manapool = manapool + item[8].manacost
+		end
+		if item[4] and item[4]:CanBeCasted() then
+			manapool = manapool + item[4].manacost
+		end
+		if item[12] and item[12].state == LuaEntityItem.STATE_READY and item[12]:CanBeCasted() and me.health < (me.maxHealth * 0.5) then
+		manapool = manapool + item[12].manacost
+		end
+	end
 	if me:DoesHaveModifier("modifier_item_invisibility_edge_windwalk") then
 		codes[6] = true
 		me:Attack(target)
@@ -244,10 +281,13 @@ function BlinkCombo()
 		codes[6] = false
 	end
 	if me:CanCast() and not me:IsChanneling() and not codes[6] then
+		print("me.mana "..me.mana.." manapool "..manapool.." skill[3] "..skill[3].manacost)
 		-- ➜ Press the attack
-		if skill[2]:CanBeCasted() then
-			me:CastAbility(skill[2],me)
-			Sleep(skill[2]:FindCastPoint()*500)
+		if skill[2].level > 0 then
+			if skill[2]:CanBeCasted() and me.mana > manapool and me.mana > skill[3].manacost then
+				me:CastAbility(skill[2],me)
+				Sleep(skill[2]:FindCastPoint()*500)
+			end
 		end
 		-- ➜ Blink dagger
 		if item[2] and item[2]:CanBeCasted() and GetDistance2D(me,target) > 150 then
@@ -260,49 +300,73 @@ function BlinkCombo()
 			Sleep(100+me:GetTurnTime(target)*500)
 		end
 		-- ➜ Mjolnir item
-		if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() then
-			me:CastAbility(item[7],me)
-			Sleep(100+me:GetTurnTime(target)*500)
+		if item[7] then
+			if item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() and me.mana > skill[3].manacost then
+				me:CastAbility(item[7],me)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Armlet item
-		if item[3] and item[3]:CanBeCasted() and not item[1] and SleepCheck("Armlet_use_delay") then
-			me:SafeCastItem("item_armlet")
-			Sleep(100)
-			Sleep(200,"Armlet_use_delay")
+		if item[3] then
+			if item[3]:CanBeCasted() and not item[1] and SleepCheck("Armlet_use_delay") then
+				me:SafeCastItem("item_armlet")
+				Sleep(100)
+				Sleep(200,"Armlet_use_delay")
+			end
 		end
 		-- ➜ Madness item
-		if item[10] and item[10]:CanBeCasted() then
-			me:SafeCastItem("item_mask_of_madness")
-			Sleep(100+me:GetTurnTime(target)*500)
+		if item[10] then
+			if item[10]:CanBeCasted() and me.mana > skill[3].manacost then
+				me:SafeCastItem("item_mask_of_madness")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Abyssal item
-		if item[6] and item[6].state == LuaEntityItem.STATE_READY and item[6]:CanBeCasted() then
-			me:CastItem("item_abyssal_blade",target)
-			Sleep(100,"duel")
-			Sleep(100+me:GetTurnTime(target)*500)
+		if item[6] then
+			if item[6].state == LuaEntityItem.STATE_READY and item[6]:CanBeCasted() and me.mana > skill[3].manacost then
+				me:CastItem("item_abyssal_blade",target)
+				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Urn of Shadows item
-		if item[11] and item[11]:CanBeCasted() then
-			me:CastItem("item_urn_of_shadows",target)
-			Sleep(100,"duel")
-			Sleep(100+me:GetTurnTime(target)*500)
+		if item[11] then
+			if item[11]:CanBeCasted() and me.mana > skill[3].manacost then
+				me:CastItem("item_urn_of_shadows",target)
+				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Halberd item
-		if item[8] and item[8].state == LuaEntityItem.STATE_READY and item[8]:CanBeCasted() then
-			me:CastItem("item_heavens_halberd",target)
-			Sleep(100,"duel")
-			Sleep(100+me:GetTurnTime(target)*500)
+		if item[8] then
+			if item[8].state == LuaEntityItem.STATE_READY and item[8]:CanBeCasted() and me.mana > skill[3].manacost then
+				me:CastItem("item_heavens_halberd",target)
+				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Medallion of courage item
-		if item[9] and item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() then
-			me:CastItem("item_medallion_of_courage",target)
-			Sleep(100,"duel")
-			Sleep(100+me:GetTurnTime(target)*500)
+		if item[9] then
+			if item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() and me.mana > skill[3].manacost then
+				me:CastItem("item_medallion_of_courage",target)
+				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Blademail item
-		if item[4] and item[4]:CanBeCasted() then
-			me:SafeCastItem("item_blade_mail")
-			Sleep(100+me:GetTurnTime(target)*600)
+		if item[4] then
+			if item[4]:CanBeCasted() and me.mana > skill[3].manacost then
+				me:SafeCastItem("item_blade_mail")
+				Sleep(100+me:GetTurnTime(target)*600)
+			end
+		end
+		-- ➜ Satanic
+		if item[12] then
+			if item[12].state == LuaEntityItem.STATE_READY and item[12]:CanBeCasted() and me.health < (me.maxHealth * 0.5) and me.mana > skill[3].manacost then
+				me:SafeCastItem("item_satanic")
+				Sleep(100+me:GetTurnTime(target)*600)
+				Sleep(100,"duel")
+			end
 		end
 		-- ➜ Duel Hability
 		if target.classId == CDOTA_Unit_Hero_Abaddon and target:GetAbility(4).cd > 5 then
