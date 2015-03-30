@@ -347,8 +347,12 @@ function ScytheCombo()
 	else
 		Killtext2.visible = false
 	end
-	hptokill = (( percent / (1 + percent )) * target.maxHealth ) -- THANKS NOVA
-	hptokill = target:DamageTaken(hptokill,DAMAGE_MAGC,me)
+	if ultimate:CanBeCasted() then
+		hptokill = (( percent / (1 + percent )) * target.maxHealth ) -- THANKS NOVA
+		hptokill = target:DamageTaken(hptokill,DAMAGE_MAGC,me)
+	else
+		hptokill = 0
+	end
 	healthtokill = math.floor((target.health - (dmgethereal + dmgD + dmgDP) - hptokill))
 	percenthp = math.floor(160*(healthtokill/target.maxHealth ))
 	return healthtokill
