@@ -286,7 +286,7 @@ function ScytheCombo()
 	end
 	predictedhp = (target.health - (dmgethereal + dmgD + dmgDP))
 	combodmg = ((target.health - predictedhp) + ((target.maxHealth - predictedhp) * percent))
-	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < combodmg and GetDistance2D(me,target) < 600 and not target:IsMagicDmgImmune() and target:CanDie() then
+	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < combodmg and GetDistance2D(me,target) < 800 and not target:IsMagicDmgImmune() and target:CanDie() then
 		if me:CanCast() then
 			if target:IsLinkensProtected() and euls then
 				if euls and euls:CanBeCasted() and euls.state == LuaEntityItem.STATE_READY then 
