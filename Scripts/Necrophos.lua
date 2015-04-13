@@ -1,4 +1,4 @@
---<<Necrophos V1.0E ✰ - by ☢bruninjaman☢>>--
+--<<Necrophos V1.1A✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Script requested by rivaillle.
 ☛ This script do?
@@ -6,6 +6,7 @@
 ☑ Show If enemy is kilable by combo.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.1A - Monday, April 13, 2015 - Fixed reduction calculations damage if enemy have linkens. Fixed uses ultimate first allways(thanks kylemac). Show linkens image when you can't use the combo.
 ➩ V1.0E - Sunday, March 29, 2015 - Show if enemy is kilable by ethereal/dagon/ultimate reworked key press system. function if linkens and you have eul's remove linkens with eul's.
 ➩ V1.0D - Saturday, March 14, 2015 - ADDED no mana for full combo. Fixed don't use ult if dagon can kill or ethereal. Added Range ultimate and death pulse.
 ➩ V1.0C - Monday, March 9, 2015 - Added Health bar and ultimate icon.
@@ -120,25 +121,31 @@ end
 function imagechange()
 	dagon = me:FindDagon()
 	ethereal = me:FindItem("item_ethereal_blade")
-	if dagon and dagon:CanBeCasted() then
-		dmgD = target:DamageTaken((dagon:GetSpecialData("damage")),DAMAGE_MAGC,me)
-	else
-		dmgD = 0
-	end
-	if ethereal and ethereal:CanBeCasted() then
-		dmgethereal = target:DamageTaken((2 * me.intellectTotal + 75),DAMAGE_MAGC,me)
-	else
-		dmgethereal = 0
-	end 
-	if target.health < dmgethereal then
-		deadimg.textureId  = drawMgr:GetTextureId("NyanUI/items/ethereal_blade")
-		deadimg.w = 42
-	elseif target.health < dmgD then
-		deadimg.textureId  = drawMgr:GetTextureId("NyanUI/items/dagon_5")
+	local euls = me:FindItem("item_cyclone")
+	if not euls and not dagon and not ethereal and target:IsLinkensProtected() then
+		deadimg.textureId  = drawMgr:GetTextureId("NyanUI/items/sphere")
 		deadimg.w = 42
 	else
-		deadimg.textureId  = drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe")
-		deadimg.w = 30
+		if dagon and dagon:CanBeCasted() then
+			dmgD = target:DamageTaken((dagon:GetSpecialData("damage")),DAMAGE_MAGC,me)
+		else
+			dmgD = 0
+		end
+		if ethereal and ethereal:CanBeCasted() then
+			dmgethereal = target:DamageTaken((2 * me.intellectTotal + 75),DAMAGE_MAGC,me)
+		else
+			dmgethereal = 0
+		end 
+		if target.health < dmgethereal then
+			deadimg.textureId  = drawMgr:GetTextureId("NyanUI/items/ethereal_blade")
+			deadimg.w = 42
+		elseif target.health < dmgD then
+			deadimg.textureId  = drawMgr:GetTextureId("NyanUI/items/dagon_5")
+			deadimg.w = 42
+		else
+			deadimg.textureId  = drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe")
+			deadimg.w = 30
+		end
 	end
 end
 
@@ -172,7 +179,7 @@ function showdamage()
 		deadimg2.entityPosition = Vector(0,0,target.healthbarOffset)
 		deadimg.entity = target 
 		deadimg.entityPosition = Vector(0,0,target.healthbarOffset)
-		if deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe") and  deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/dagon_5") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/ethereal_blade")  then
+		if deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe") and  deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/dagon_5") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/ethereal_blade") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/sphere")  then
 			deadimg.textureId  = drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe")
 		end
 		if healthtokill > 0 then
@@ -249,10 +256,13 @@ function ScytheCombo()
 	if ethereal and ethereal:CanBeCasted() then
 		dmgethereal = target:DamageTaken((2 * me.intellectTotal + 75),DAMAGE_MAGC,me)
 		etherealready = true
+		if target:IsLinkensProtected() and not euls then
+			dmgethereal = 0
+		end
 	else
 		dmgethereal = 0
-		etherealready = false
-	end 
+		etherealready = false 
+	end
 	if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
 		dmgDP = target:DamageTaken((DeathPulseSkill[DeathPulse.level]),DAMAGE_MAGC,me) 
 		if etherealready then
@@ -265,6 +275,9 @@ function ScytheCombo()
 		dmgD = target:DamageTaken((dagon:GetSpecialData("damage")),DAMAGE_MAGC,me)
 		if etherealready then
 			dmgD = dmgD + (dmgD * 0.4)
+		end
+		if not euls and not ethereal and target:IsLinkensProtected() then
+			dmgD = 0
 		end
 	else
 		dmgD = 0
@@ -288,52 +301,56 @@ function ScytheCombo()
 	combodmg = ((target.health - predictedhp) + ((target.maxHealth - predictedhp) * percent))
 	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < combodmg and GetDistance2D(me,target) < 800 and not target:IsMagicDmgImmune() and target:CanDie() then
 		if me:CanCast() then
-			if target:IsLinkensProtected() and euls then
+			if target:IsLinkensProtected() then
 				if euls and euls:CanBeCasted() and euls.state == LuaEntityItem.STATE_READY then 
 					me:CastItem("item_cyclone",target)
 					Sleep(100+me:GetTurnTime(target)*500)
-				end
-			else
-				if ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY then
+				elseif ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY then
 					me:CastItem("item_ethereal_blade",target)
 					Sleep(100+me:GetTurnTime(target)*500)
-					if target.health < dmgD and target.alive then
-						if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
-							me:CastAbility(dagon,target)
-							Sleep(100+me:GetTurnTime(target)*500)
-						end
-					else
-						if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
-							me:CastAbility(dagon,target)
-							Sleep(100+me:GetTurnTime(target)*500)
-						end
-						if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
-							me:SafeCastAbility(DeathPulse)
-							Sleep(DeathPulse:FindCastPoint()*800)
-						end
-						if ultimate and ultimate:CanBeCasted() and not target:IsLinkensProtected() then
-							me:CastAbility(ultimate,target)
-							Sleep(ultimate:FindCastPoint()*800)
-						end
+				elseif dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+					me:CastAbility(dagon,target)
+					Sleep(100+me:GetTurnTime(target)*500)
+				end
+			else
+				if ultimate and not target:IsLinkensProtected() then
+					if ultimate:CanBeCasted() and not target:IsLinkensProtected() then
+						me:CastAbility(ultimate,target)
+						Sleep(ultimate:FindCastPoint()*500)
 					end
-				else
-					if target.health < dmgD then
-						if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
-							me:CastAbility(dagon,target)
-							Sleep(100+me:GetTurnTime(target)*500)
+					if ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY and not ultimate:CanBeCasted() then
+						me:CastItem("item_ethereal_blade",target)
+						Sleep(100+me:GetTurnTime(target)*500)
+						if target.health < dmgD and target.alive then
+							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+								me:CastAbility(dagon,target)
+								Sleep(100+me:GetTurnTime(target)*500)
+							end
+						else
+							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY and not ultimate:CanBeCasted() then 
+								me:CastAbility(dagon,target)
+								Sleep(100+me:GetTurnTime(target)*500)
+							end
+							if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 and not ultimate:CanBeCasted() then
+								me:SafeCastAbility(DeathPulse)
+								Sleep(DeathPulse:FindCastPoint()*800)
+							end
 						end
 					else
-						if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
-							me:CastAbility(dagon,target)
-							Sleep(100+me:GetTurnTime(target)*500)
-						end
-						if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 then
-							me:SafeCastAbility(DeathPulse)
-							Sleep(DeathPulse:FindCastPoint()*800)
-						end
-						if ultimate and ultimate:CanBeCasted() and not target:IsLinkensProtected() then
-							me:CastAbility(ultimate,target)
-							Sleep(ultimate:FindCastPoint()*800)
+						if target.health < dmgD then
+							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+								me:CastAbility(dagon,target)
+								Sleep(100+me:GetTurnTime(target)*500)
+							end
+						else
+							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY and not ultimate:CanBeCasted() then 
+								me:CastAbility(dagon,target)
+								Sleep(100+me:GetTurnTime(target)*500)
+							end
+							if DeathPulse.level > 0 and DeathPulse:CanBeCasted() and GetDistance2D(me,target) < 475 and not ultimate:CanBeCasted() then
+								me:SafeCastAbility(DeathPulse)
+								Sleep(DeathPulse:FindCastPoint()*800)
+							end
 						end
 					end
 				end
