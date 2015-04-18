@@ -1,12 +1,13 @@
---<<Necrophos V1.1A✰ - by ☢bruninjaman☢>>--
+--<<Necrophos V1.1B✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Script requested by rivaillle.
 ☛ This script do?
-☑ Use Dagon, Death Pulse if enemy is in range and ult.
+☑ Use Reaper's scythe -> ethereal -> dagon -> death pulse with perfect calculation.
 ☑ Show If enemy is kilable by combo.
 ********************************************************************************
 ♜ Change Log ♜
-➩ V1.1A - Monday, April 13, 2015 - Fixed reduction calculations damage if enemy have linkens. Fixed uses ultimate first allways(thanks kylemac). Show linkens image when you can't use the combo.
+➩ V1.1B - Saturday, April 18, 2015 - Fixed use ethereal before dagon, Show Aegis image if enemy have aegis / Can Reincarnate. Added Veil of discord for combo.
+➩ V1.1A - Monday, April 13, 2015 - Fixed reduction calculations damage if enemy have linkens. Fixed uses ultimate first always(thanks kylemac). Show linkens image when you can't use the combo.
 ➩ V1.0E - Sunday, March 29, 2015 - Show if enemy is kilable by ethereal/dagon/ultimate reworked key press system. function if linkens and you have eul's remove linkens with eul's.
 ➩ V1.0D - Saturday, March 14, 2015 - ADDED no mana for full combo. Fixed don't use ult if dagon can kill or ethereal. Added Range ultimate and death pulse.
 ➩ V1.0C - Monday, March 9, 2015 - Added Health bar and ultimate icon.
@@ -136,7 +137,10 @@ function imagechange()
 		else
 			dmgethereal = 0
 		end 
-		if target.health < dmgethereal then
+		if target:CanReincarnate() then
+			deadimg.textureId  = drawMgr:GetTextureId("NyanUI/items/aegis")
+			deadimg.w = 42
+		elseif target.health < dmgethereal then
 			deadimg.textureId  = drawMgr:GetTextureId("NyanUI/items/ethereal_blade")
 			deadimg.w = 42
 		elseif target.health < dmgD then
@@ -179,7 +183,7 @@ function showdamage()
 		deadimg2.entityPosition = Vector(0,0,target.healthbarOffset)
 		deadimg.entity = target 
 		deadimg.entityPosition = Vector(0,0,target.healthbarOffset)
-		if deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe") and  deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/dagon_5") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/ethereal_blade") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/sphere")  then
+		if deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe") and  deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/dagon_5") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/ethereal_blade") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/sphere") and deadimg.textureId  ~= drawMgr:GetTextureId("NyanUI/items/aegis")  then
 			deadimg.textureId  = drawMgr:GetTextureId("NyanUI/spellicons/necrolyte_reapers_scythe")
 		end
 		if healthtokill > 0 then
@@ -219,6 +223,7 @@ local dagon = nil
 local ultimate = nil
 local ethereal = nil
 local DeathPulse = nil
+local veil = nil
 local dmgD = 0
 local dmgDP = 0
 local dmgult = 0
@@ -238,9 +243,13 @@ function ScytheCombo()
 	ethereal = me:FindItem("item_ethereal_blade")
 	ultimate = me:GetAbility(4)
 	DeathPulse = me:GetAbility(1)
+	veil = me:FindItem("item_veil_of_discord")
 	manapoint = 0
 	aghanim = me:FindItem("item_ultimate_scepter")
 	local euls = me:FindItem("item_cyclone")
+	if veil then
+		manapoint = manapoint + veil.manacost
+	end
 	if ethereal then
 		manapoint = manapoint + ethereal.manacost
 	end
@@ -299,6 +308,9 @@ function ScytheCombo()
 	end
 	predictedhp = (target.health - (dmgethereal + dmgD + dmgDP))
 	combodmg = ((target.health - predictedhp) + ((target.maxHealth - predictedhp) * percent))
+	if veil and veil:CanBeCasted() then
+		combodmg = (combodmg * 1.25)
+	end
 	if ultimate.level > 0 and keyactive and target and target.alive and target.visible and target.health < combodmg and GetDistance2D(me,target) < 800 and not target:IsMagicDmgImmune() and target:CanDie() then
 		if me:CanCast() then
 			if target:IsLinkensProtected() then
@@ -318,16 +330,20 @@ function ScytheCombo()
 						me:CastAbility(ultimate,target)
 						Sleep(ultimate:FindCastPoint()*500)
 					end
+					if veil and veil:CanBeCasted() and veil.state == LuaEntityItem.STATE_READY and not ultimate:CanBeCasted() then
+						me:CastAbility(veil,target.position)
+						Sleep(100+me:GetTurnTime(target)*500)
+					end
 					if ethereal and ethereal:CanBeCasted() and ethereal.state == LuaEntityItem.STATE_READY and not ultimate:CanBeCasted() then
 						me:CastItem("item_ethereal_blade",target)
 						Sleep(100+me:GetTurnTime(target)*500)
 						if target.health < dmgD and target.alive then
-							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY then 
+							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY and not ethereal:CanBeCasted() then 
 								me:CastAbility(dagon,target)
 								Sleep(100+me:GetTurnTime(target)*500)
 							end
 						else
-							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY and not ultimate:CanBeCasted() then 
+							if dagon and dagon:CanBeCasted() and dagon.state == LuaEntityItem.STATE_READY and not ultimate:CanBeCasted() and not ethereal:CanBeCasted() then 
 								me:CastAbility(dagon,target)
 								Sleep(100+me:GetTurnTime(target)*500)
 							end
@@ -371,6 +387,9 @@ function ScytheCombo()
 		hptokill = 0
 	end
 	healthtokill = math.floor((target.health - (dmgethereal + dmgD + dmgDP) - hptokill))
+	if veil and veil:CanBeCasted() then
+		healthtokill = math.floor(healthtokill * 0.75)
+	end
 	percenthp = math.floor(160*(healthtokill/target.maxHealth ))
 	return healthtokill
 end
