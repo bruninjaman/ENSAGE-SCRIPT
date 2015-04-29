@@ -290,7 +290,7 @@ function BlinkCombo()
 			end
 		end
 		-- ➜ Blink dagger
-		if item[2] and item[2]:CanBeCasted() and GetDistance2D(me,target) > 150 then
+		if item[2] and item[2]:CanBeCasted() and GetDistance2D(me,target) > 80 then
 			me:CastAbility(item[2],target.position)
 			Sleep(100+me:GetTurnTime(target)*500)
 		end
