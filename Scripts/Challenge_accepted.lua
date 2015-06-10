@@ -1,18 +1,26 @@
---<<Legion commander V1.0E ✰ - by ☢bruninjaman☢>>--
+--<<Legion commander V1.1C ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Reworked version.
 ☑ Some new functions and more performance.
 ☑ Fixed little bugs, FPS drops and more.
 ☛ This script do?
-☑ Jump in enemy with blink dagger, use all itens and ultimate super fast.
+☑ Blink in your enemy target and use all itens that you have for win the duel.
 ☒ Auto use first skill when enemy is killable.
-☑ Little text Menu, with mini manual.
 ☑ Show if enemy is on blink dagger range and your target.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.1C - Thursday, June 4, 2015 - Reworked script again - trying to remove fps drops problem. You know when you is out of mana for full combo.
+	-> Added (Solar Crest, Dust, Mango, Arcane, Buckler, Crimson, Lotus Orb and Silver Edge)
+	-> Reworked Mana Calculation(With all itens)
+	-> When you are out of mana, auto usage of soulring, arcane, mango and magic wand/stick. and auto cheese.
+	-> Added Auto dust.
+	-> new template (colors, fonts, etc..) of display menu.(Snall changes.)
+	-> removed "AbilityDamage" and "Animations" lib.
+	-> thanks Nova for help-me :D. thanks MaZaiPC for stay keeping my script updated and for new ideias for my legion script.
+➩ V1.1A - Sunday, May 31, 2015 - Added CD check (use duel only if all casted). Black King Bar now used wisely. Reworked by MaZaiPC, on all issues related with this version contact me.
 ➩ V1.0E - Sunday, March 29, 2015 - Satanic use when your Health is < 50%. Fixed autoblink bug. Fixed no mana bug.
-➩ V1.0D - Monday, March 9, 2015 - REMOVED AUTO DUEL(Because it isn't good.)  and OverHelmingOdds(Fix lag problem). Reworked itens Icons.
-➩ V1.0C - Monday, March 2, 2015 - Increased speed of combo and Blink dagger will only be used if enemy is out of duel range. Added auto OverwhelmingOdds.
+➩ V1.0D - Monday, March 9, 2015  - REMOVED AUTO DUEL(Because it isn't good.)  and OverHelmingOdds(Fix lag problem). Reworked itens Icons.
+➩ V1.0C - Monday, March 2, 2015  - Increased speed of combo and Blink dagger will only be used if enemy is out of duel range. Added auto OverwhelmingOdds.
 ➩ V1.0B - Thursday, February 28, 2015 - Option for Low Resolution screen and Hidemessage option.
 ➩ V1.0A - Thursday, February 26, 2015 - New Reworked Version Released.
 ]]
@@ -21,25 +29,18 @@
 require("libs.Utils")
 require("libs.ScriptConfig")
 require("libs.TargetFind")
-require("libs.AbilityDamage")
-require("libs.Animations")
 
--- ✖ config ✖ --
+-- ✖ Settings Variables ✖ --
 config = ScriptConfig.new()
 config:SetParameter("toggleKey", "F", config.TYPE_HOTKEY)
 config:SetParameter("BlinkComboKey", "D", config.TYPE_HOTKEY)
 config:SetParameter("StopComboKey", "S", config.TYPE_HOTKEY)
-config:SetParameter("lowResolution", false)
-config:SetParameter("hidemessage", false)
-config:SetParameter("manacheck", true)
 config:Load()
 
 local toggle = {
-			config.toggleKey,       -- ➜ toggle Key            --  toggle[1]
-			config.BlinkComboKey,   -- ➜ blink Combo Key       --  toggle[2]
-			config.StopComboKey,    -- ➜ Stop Combo Key        --  toggle[3]
-			config.lowResolution,   -- ➜ Low Resolution Option --  toggle[4]
-			config.hidemessage,     -- ➜ Hide TXT              --  toggle[5]
+	["switchbkb"]  = config.toggleKey,
+	["blinkcombo"] = config.BlinkComboKey,
+	["stopcombo"]  = config.StopComboKey,
 }
 
 -- Global Variables --
@@ -47,49 +48,44 @@ local target   = nil
 local item     = nil
 local skill    = nil
 local me       = nil
-local manacheck = config.manacheck
-
-local codes = {
-	true,  -- codes[1]
-	true,  -- codes[2]
-	true,  -- codes[3]
-	false, -- codes[4]
-	false, -- codes[5]
-	false, -- codes[6]
-	false,  -- codes[7]
+local KeyCode = {
+	BlackKingBar  = false,
+	shadow        = false,
+	BlackKingBar2 = false,
+	CanCombo      = false,
+	registered    = false,
 }
--- ✖ Menu screen ✖ --
+-- * Variables for graphic
 local x,y            = 1150, 50
 local monitor        = client.screenSize.x/1600
 local F14            = drawMgr:CreateFont("F14","Franklin Gothic Medium",17,800) 
-local F12            = drawMgr:CreateFont("F12","Franklin Gothic Medium",12,10)
-local statusText     = drawMgr:CreateText(x*monitor,y*monitor,0xA4A4A4FF,"Finding Black King Bar - Blink Combo - (".. string.char(toggle[2]) ..")",F14) statusText.visible  = false
--- ➜ marked for death text
+local BKBtext        = drawMgr:CreateText(x*monitor,y*monitor,0xA4A4A4FF,"Trying to find Black King Bar - Duel Combo - (".. string.char(toggle.blinkcombo) ..")",F14) BKBtext.visible  = false
 local legion         = drawMgr:CreateFont("Font","Fixedsys",14,550)
-local ikillyou       = drawMgr:CreateText(-50,-50,-1,"Marked for death!",legion); ikillyou.visible = false
--- ➜ Images
-local bkb3       = drawMgr:CreateRect(-17,-82,34,34,0xFFD700ff) bkb3.visible     = false
-local bkb1       = drawMgr:CreateRect(-16,-80,45,30,0x000000ff) bkb1.visible     = false
-local bkb2       = drawMgr:CreateRect(-16,-80,45,30,0x000000ff) bkb2.visible     = false
-local blinkbg    = drawMgr:CreateRect(-19,-83,36,33,0x1C1C1Cff) blinkbg.visible  = false
-local blink      = drawMgr:CreateRect(-16,-80,43,27,0x000000ff) blink.visible    = false
+local MyTarget       = drawMgr:CreateText(-50,-50,-1,"Marked for death!",legion) MyTarget.visible   = false
+local manapooltxt    = drawMgr:CreateText(-50,-105,-1,"Not enough mana!",legion) manapooltxt.visible = false
+local BlinkBackGround    = drawMgr:CreateRect(-19,-83,36,33,0x1C1C1Cff) BlinkBackGround.visible     = false
+local BlinkTexture       = drawMgr:CreateRect(-16,-80,43,27,0x000000ff) BlinkTexture.visible        = false
 
 -- ✖ When you start the game (check hero) ✖ --
 function onLoad()
 	if PlayingGame() then
-		me = entityList:GetMyHero()
+		if me == nil then
+			me = entityList:GetMyHero()
+		end
 		if not me or me.classId ~= CDOTA_Unit_Hero_Legion_Commander then 
 			script:Disable()
+			print ("--- Legion Commander Script inactivated. ---")
+			return
 		else
-			if toggle[4] then
-				statusText     = drawMgr:CreateText((x-150)*monitor,(y+10)*monitor,0xA4A4A4FF,"Finding Black King Bar - Blink Combo - (".. string.char(toggle[2]) ..")",F12) statusText.visible  = false
+			if skill == nil then
+				skill = {
+					-- ["arrows"] = me:GetAbility(1),  Not used yet
+					["healbuff"] = me:GetAbility(2),
+					["duel"] = me:GetAbility(4),
+				}
 			end
-			if toggle[5] then
-				statusText.visible  = false
-			else
-				statusText.visible  = true 
-			end
-			codes[5] = true
+			registered = true
+			BKBtext.visible  = true
 			script:RegisterEvent(EVENT_TICK,Main)
 			script:RegisterEvent(EVENT_KEY,Key)
 			script:UnregisterEvent(onLoad)
@@ -97,272 +93,421 @@ function onLoad()
 	end
 end
 
--- ✖ pressing 'F' or 'D' or 'S' ✖ --
+-- Function for keys.--
 function Key(msg,code)
-	me = entityList:GetMyHero()
-	if not me then return end
-	item = {
-		me:FindItem("item_black_king_bar") -- ➜ BKB item[1]
-	}
-	skill = {
-		me:GetAbility(4)                   -- ➜ skill[1] -- DUEL
-	}
 	if client.chat or client.console or client.loading then return end
-	if item[1] and codes[1] and not toggle[5] then
-		statusText.text = "Black King Bar - Enable - (" .. string.char(toggle[1]) .. ")   Blink Combo - (" .. string.char(toggle[2]) .. ") "
-		codes[1] = false
-		codes[3] = true
-		-- ➜ BKB icon
-		bkb1.entity            = me 
-		bkb1.entityPosition    = Vector(0,0,me.healthbarOffset)
-		bkb1.textureId         = drawMgr:GetTextureId("NyanUI/items/black_king_bar")
-		bkb1.visible           = true
-		bkb3.entity            = me 
-		bkb3.entityPosition    = Vector(0,0,me.healthbarOffset)
-		bkb3.visible           = true
-		bkb2.entity            = me 
-		bkb2.entityPosition    = Vector(0,0,me.healthbarOffset)
-		bkb2.textureId         = drawMgr:GetTextureId("NyanUI/items/translucent/black_king_bar_t25")
+	if me == nil then
+		me = entityList:GetMyHero()
 	end
-	if IsKeyDown(toggle[1]) and SleepCheck("CD_toggle2") and not toggle[5] then
-		codes[2] = not codes[2]
-		Sleep(500,"CD_toggle2")
-		if codes[2] then
-			if item[1] then
-				statusText.text = "Black King Bar - Enable - (" .. string.char(toggle[1]) .. ")   Blink Combo - (" .. string.char(toggle[2]) .. ") "
-				statusText.color = 0xDF0101FF
-				codes[3] = true
-				bkb1.visible = true
-				bkb2.visible = false
-				bkb3.visible = true
+	if not me then return end
+	if IsKeyDown(toggle.switchbkb) and SleepCheck("CD_toggle_Black_King_Bar") then
+		KeyCode.BlackKingBar2 = not KeyCode.BlackKingBar2
+		Sleep(500,"CD_toggle_Black_King_Bar")
+		if KeyCode.BlackKingBar2 then
+			if item.blackkingbar then
+				if BKBtext.text ~= "Black King Bar - Enable - (" .. string.char(toggle.switchbkb) .. ")   Duel Combo - (" .. string.char(toggle.blinkcombo) .. ") " then
+					BKBtext.text       = "Black King Bar - Enable - (" .. string.char(toggle.switchbkb) .. ")   Duel Combo - (" .. string.char(toggle.blinkcombo) .. ") "
+				end
+				if BKBtext.color ~= 0xDF0101FF then
+					BKBtext.color      = 0xDF0101FF
+				end
+				if KeyCode.BlackKingBar ~= true then
+					KeyCode.BlackKingBar  = true
+				end
 			else
-				statusText.text    = "Finding Black King Bar - Blink Combo - (".. string.char(toggle[2]) ..")"
-				statusText.color = 0xA4A4A4FF
-				bkb1.visible = false
-				bkb2.visible = false
-				bkb3.visible = false
+				if BKBtext.text ~= "Trying to find Black King Bar - Duel Combo - (".. string.char(toggle.blinkcombo) ..")" or BKBtext.color ~= 0xA4A4A4FF then
+					BKBtext.text       = "Trying to find Black King Bar - Duel Combo - (".. string.char(toggle.blinkcombo) ..")"
+					BKBtext.color      = 0xA4A4A4FF
+				end
 			end
 		else
-			if item[1] then
-				statusText.text = "Black King Bar - Disable - (" .. string.char(toggle[1]) .. ")   Blink Combo - (" .. string.char(toggle[2]) .. ") "
-				codes[3] = false
-				bkb1.visible = false
-				bkb2.visible = true
-				bkb3.visible = true
-				statusText.color = 0x8A0808FF
+			if item.blackkingbar then
+				if BKBtext.text ~= "Black King Bar - Disable - (" .. string.char(toggle.switchbkb) .. ")   Duel Combo - (" .. string.char(toggle.blinkcombo) .. ") " or BKBtext.color ~= 0x8A0808FF or KeyCode.BlackKingBar ~= false then
+					BKBtext.text       = "Black King Bar - Disable - (" .. string.char(toggle.switchbkb) .. ")   Duel Combo - (" .. string.char(toggle.blinkcombo) .. ") "
+					BKBtext.color      = 0x8A0808FF
+					KeyCode.BlackKingBar  = false
+				end
 			else
-				statusText.text = "Finding Black King Bar - Blink Combo - (".. string.char(toggle[2]) ..")"
-				statusText.color = 0xA4A4A4FF
-				bkb1.visible = false
-				bkb2.visible = false
-				bkb3.visible = false
+				if BKBtext.text ~= "Trying to find Black King Bar - Duel Combo - (".. string.char(toggle.blinkcombo) ..")" or BKBtext.color ~= 0xA4A4A4FF then
+					BKBtext.text       = "Trying to find Black King Bar - Duel Combo - (".. string.char(toggle.blinkcombo) ..")"
+					BKBtext.color      = 0xA4A4A4FF
+				end
 			end
 		end
 	end
-	if code == toggle[2] then
-		codes[4] = true
+	if code == toggle.blinkcombo then
+		if not KeyCode.CanCombo then
+			KeyCode.CanCombo = true
+		end
 	end
-	if code == toggle[3] then
-		codes[4] = false
+	if code == toggle.stopcombo then
+		if KeyCode.CanCombo then
+			KeyCode.CanCombo = false
+		end
 	end
 end
-
-
--- ✖ Starting Combo ✖ --
-function Main(tick)
-	me = entityList:GetMyHero()
+-- Main Function --
+function Main()
+	if me == nil then me = entityList:GetMyHero() end
 	if not me then return end
 	if not SleepCheck() then return end
 	target = targetFind:GetClosestToMouse(100)
-	item = {
-		me:DoesHaveModifier("modifier_item_armlet_unholy_strength"), -- ➜ item[1]
-		me:FindItem("item_blink"), 									 -- ➜ item[2]
-		me:FindItem("item_armlet"),                                  -- ➜ item[3]
-		me:FindItem("item_blade_mail"),                              -- ➜ item[4]
-		me:FindItem("item_black_king_bar"),                          -- ➜ item[5]
-		me:FindItem("item_abyssal_blade"),                           -- ➜ item[6]
-		me:FindItem("item_mjollnir"),                                -- ➜ item[7]
-		me:FindItem("item_heavens_halberd"),                         -- ➜ item[8]
-		me:FindItem("item_medallion_of_courage"),                    -- ➜ item[9]
-		me:FindItem("item_mask_of_madness"),                         -- ➜ item[10]
-		me:FindItem("item_urn_of_shadows"),                          -- ➜ item[11]
-		me:FindItem("item_satanic"),                                 -- ➜ item[12]
-	}
-	skill = {
-		me:GetAbility(1),                                            -- ➜ skill[1] -- Arrows
-		me:GetAbility(2),                                            -- ➜ skill[2] -- Buff
-		me:GetAbility(4),                                            -- ➜ skill[3] -- DUEL
-	}
-	if target and GetDistance2D(me,target) < 2000 and skill[3] and target.alive and target.visible then
-		blink.entity            = target 
-		blink.entityPosition    = Vector(0,0,target.healthbarOffset)
-		blink.textureId         = drawMgr:GetTextureId("NyanUI/items/blink")
-		blinkbg.entity          = target 
-		blinkbg.entityPosition  = Vector(0,0,target.healthbarOffset)
-		ikillyou.entity = target
-		ikillyou.entityPosition = Vector(0,0,target.healthbarOffset)
+	FindItems(me)
+	-- graphic code --
+	if target and GetDistance2D(me,target) < 2000 and skill.duel and target.alive and target.visible then
+		-- configuration of graphics -- 
+		if (BlinkTexture.entity ~= target or
+		BlinkTexture.entityPosition ~= Vector(0,0,target.healthbarOffset) or
+		BlinkTexture.textureId ~= drawMgr:GetTextureId("NyanUI/items/blink") or
+		BlinkBackGround.entity ~= target or
+		BlinkBackGround.entityPosition ~= Vector(0,0,target.healthbarOffset) or
+		MyTarget.entity ~= target or
+		MyTarget.entityPosition ~= Vector(0,0,target.healthbarOffset) or
+		manapooltxt.entity ~= target or
+		manapooltxt.entityPosition ~= Vector(0,0,target.healthbarOffset) or
+		manapooltxt.color ~= 0x013ADFFF) then
+			BlinkTexture.entity             = target 
+			BlinkTexture.entityPosition    = Vector(0,0,target.healthbarOffset)
+			BlinkTexture.textureId         = drawMgr:GetTextureId("NyanUI/items/blink")
+			BlinkBackGround.entity          = target 
+			BlinkBackGround.entityPosition  = Vector(0,0,target.healthbarOffset)
+			MyTarget.entity = target
+			MyTarget.entityPosition = Vector(0,0,target.healthbarOffset)
+			manapooltxt.entity = target
+			manapooltxt.entityPosition = Vector(0,0,target.healthbarOffset)
+			manapooltxt.color = 0x013ADFFF
+		end
+		-- --- --- --- --- --- --- --- --
 		markedfordeath()
 	else
-		ikillyou.visible   = false
-		blink.visible      = false
-		blinkbg.visible    = false
+		if (MyTarget.visible ~= false
+		or BlinkTexture.visible ~= false
+		or BlinkBackGround.visible ~= false
+		or manapooltxt.visible ~= false) then
+			MyTarget.visible        = false
+			BlinkTexture.visible    = false
+			BlinkBackGround.visible = false
+			manapooltxt.visible     = false
+		end
 	end
-	if target and GetDistance2D(me,target) < 950 and item[11] then
+	-- Auto Urn code --
+	if target and GetDistance2D(me,target) < 950 and item.urn then
 		Autourn()
 	end
-	if GetDistance2D(me,target) > 1200 then -- ➜ distance correction
-		codes[4] = false
+	-- Fix autocombos --
+	if target and GetDistance2D(me,target) > 1200 then
+		KeyCode.CanCombo = false
 	end
-	if codes[4] and skill[3].level > 0 and target and target.visible and target.alive and me.alive and GetDistance2D(me,target) < 1200 and SleepCheck("DelayCombo") and SleepCheck("duelactive") then
+	-------------------
+	-- Combo code --
+	if (skill.duel).level > 0 and target and target.visible and target.alive and me.alive and GetDistance2D(me,target) < 1200 and SleepCheck("DelayCombo") and KeyCode.CanCombo then
 		Sleep(300,"DelayCombo")
+		manacheck()
 		BlinkCombo()
 	end
 end
 
+-- Marked for death text Function --
 function markedfordeath()
 	if target and target.alive and target.visible then
-		ikillyou.visible = true
-		if item[2] and GetDistance2D(me,target) < 1200 then
-			blink.visible   = true
-			blinkbg.visible = true
+		if not MyTarget.visible then
+			MyTarget.visible = true
+		end
+		if item.blink and GetDistance2D(me,target) < 1200 then
+			if not BlinkTexture.visible or BlinkBackGround.visible then
+				BlinkTexture.visible    = true
+				BlinkBackGround.visible = true
+			end
 		else
-			blink.visible      = false
-			blinkbg.visible    = false
+			if BlinkTexture.visible or BlinkBackGround.visible then
+				BlinkTexture.visible    = false
+				BlinkBackGround.visible = false
+			end
+		end
+		if not manapool() then
+			if not manapooltxt.visible then
+				manapooltxt.visible = true
+			end
+		else
+			if manapooltxt.visible then
+				manapooltxt.visible = false
+			end
 		end
 	end
+	return
 end
 
+-- Nova - FindItems function --
+function FindItems(me)
+  item = setmetatable({}, {
+    __index = function(item, key)
+      if key == "armletactive" then
+        return me:DoesHaveModifier("modifier_item_armlet_unholy_strength")
+      elseif key == "blink" then
+        return me:FindItem("item_blink")
+      elseif key == "armlet" then
+        return me:FindItem("item_armlet")
+      elseif key == "blademail" then
+        return me:FindItem("item_blade_mail")
+      elseif key == "blackkingbar" then
+        return me:FindItem("item_black_king_bar")
+      elseif key == "abyssal" then
+        return me:FindItem("item_abyssal_blade")
+      elseif key == "mjollnir" then
+        return me:FindItem("item_mjollnir")
+      elseif key == "halberd" then
+        return me:FindItem("item_heavens_halberd")
+      elseif key == "medallion" then
+        return me:FindItem("item_medallion_of_courage")
+      elseif key == "madness" then
+        return me:FindItem("item_mask_of_madness")
+      elseif key == "urn" then
+        return me:FindItem("item_urn_of_shadows")
+      elseif key == "satanic" then
+        return me:FindItem("item_satanic")
+      elseif key == "solarcrest" then
+        return me:FindItem("item_solar_crest")
+      elseif key == "dust" then
+        return me:FindItem("item_dust")
+      elseif key == "mango" then
+        return me:FindItem("item_enchanted_mango")
+      elseif key == "arcane" then
+        return me:FindItem("item_arcane_boots")
+      elseif key == "buckler" then
+        return me:FindItem("item_buckler")
+      elseif key == "crimson" then
+        return me:FindItem("item_crimson_guard")
+      elseif key == "lotusorb" then
+        return me:FindItem("item_lotus_orb")
+      elseif key == "cheese" then
+        return me:FindItem("item_cheese")
+      elseif key == "magicstick" then
+        return me:FindItem("item_magic_stick")
+      elseif key == "magicwand" then
+        return me:FindItem("item_magic_wand")
+      elseif key == "soulring" then
+        return me:FindItem("item_soul_ring")
+      else
+        return item[key]
+      end
+    end
+  })
+end
+-- Mana Check Function --
+function manacheck()
+	if not manapool() then
+		if item.mango then
+			if item.mango.state == LuaEntityItem.STATE_READY and item.mango:CanBeCasted() then
+				me:CastAbility(item.mango,me)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		if item.arcane then
+			if item.arcane.state == LuaEntityItem.STATE_READY and item.arcane:CanBeCasted() then
+				me:SafeCastItem("item_arcane_boots")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		if item.soulring then
+			if item.soulring.state == LuaEntityItem.STATE_READY and item.soulring:CanBeCasted() and me.health >= (me.maxHealth * 0.3) or me.maxHealth >= 500 then
+				me:SafeCastItem("item_soul_ring")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		if item.magicwand then
+			if item.magicwand.state == LuaEntityItem.STATE_READY and item.magicwand:CanBeCasted() then
+				me:SafeCastItem("item_magic_wand")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		if item.magicstick then
+			if item.magicstick.state == LuaEntityItem.STATE_READY and item.magicstick:CanBeCasted() then
+				me:SafeCastItem("item_magic_stick")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		if item.cheese then
+			if item.cheese.state == LuaEntityItem.STATE_READY and item.cheese:CanBeCasted() then
+				me:SafeCastItem("item_cheese")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+	end
+	if me.health <= (me.maxHealth * 0.5) then
+		if item.magicwand then
+			if item.magicwand.state == LuaEntityItem.STATE_READY and item.magicwand:CanBeCasted() then
+				me:SafeCastItem("item_magic_wand")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		if item.magicstick then
+			if item.magicstick.state == LuaEntityItem.STATE_READY and item.magicstick:CanBeCasted() then
+				me:SafeCastItem("item_magic_stick")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		if item.cheese then
+			if item.cheese.state == LuaEntityItem.STATE_READY and item.cheese:CanBeCasted() then
+				me:SafeCastItem("item_cheese")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+	end
+	return
+end
+
+-- Auto Urn Function --
 function Autourn()
-	if target and target.health <= 150 and item[11] and GetDistance2D(me,target) < 950 and target.visible and target.alive and me.alive then
-		if item[11] and item[11]:CanBeCasted() then
-			me:CastItem("item_urn_of_shadows",target)
-			Sleep(100+me:GetTurnTime(target)*500)
-		return
+	if me:CanCast() and not me:IsChanneling() then
+		if target and target.health <= 150 and item.urn and GetDistance2D(me,target) < 950 and target.visible and target.alive and me.alive then
+			if item.urn and item.urn:CanBeCasted() then
+				me:CastItem("item_urn_of_shadows",target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			return
+			end
 		end
 	end
+	return
 end
 
+-- Blink Combo Function -- 
 function BlinkCombo()
-	local manapool = 0
-	if manacheck then
-		if skill[2] and skill[2]:CanBeCasted() then
-			manapool = manapool + skill[2].manacost
-		end
-		if codes[3] and item[5] and item[5]:CanBeCasted() then
-			manapool = manapool + item[5].manacost
-		end
-		if item[7] and item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() then
-			manapool = manapool + item[7].manacost
-		end
-		if item[10] and item[10]:CanBeCasted() then
-			manapool = manapool + item[10].manacost
-		end
-		if item[6] and item[6].state == LuaEntityItem.STATE_READY and item[6]:CanBeCasted() then
-			manapool = manapool + item[6].manacost
-		end
-		if item[11] and item[11]:CanBeCasted() then
-			manapool = manapool + item[11].manacost
-		end
-		if item[8] and item[8].state == LuaEntityItem.STATE_READY and item[8]:CanBeCasted() then
-			manapool = manapool + item[8].manacost
-		end
-		if item[4] and item[4]:CanBeCasted() then
-			manapool = manapool + item[4].manacost
-		end
-		if item[12] and item[12].state == LuaEntityItem.STATE_READY and item[12]:CanBeCasted() and me.health < (me.maxHealth * 0.5) then
-		manapool = manapool + item[12].manacost
-		end
-	end
-	if me:DoesHaveModifier("modifier_item_invisibility_edge_windwalk") then
-		codes[6] = true
+	if me:DoesHaveModifier("modifier_item_invisibility_edge_windwalk") or me:DoesHaveModifier("modifier_item_silver_edge_windwalk") then
+		KeyCode.shadow = true
 		me:Attack(target)
 		Sleep(100+me:GetTurnTime(target)*500)
 	else
-		codes[6] = false
+		KeyCode.shadow = false
 	end
-	if me:CanCast() and not me:IsChanneling() and not codes[6] then
-		print("me.mana "..me.mana.." manapool "..manapool.." skill[3] "..skill[3].manacost)
+	if me:CanCast() and not me:IsChanneling() and not KeyCode.shadow then
 		-- ➜ Press the attack
-		if skill[2].level > 0 then
-			if skill[2]:CanBeCasted() and me.mana > manapool and me.mana > skill[3].manacost then
-				me:CastAbility(skill[2],me)
-				Sleep(skill[2]:FindCastPoint()*500)
+		if skill.healbuff.level > 0 then
+			if skill.healbuff:CanBeCasted() and manapool() then
+				me:CastAbility(skill.healbuff,me)
+				Sleep(skill.healbuff:FindCastPoint()*800)
 			end
 		end
 		-- ➜ Blink dagger
-		if item[2] and item[2]:CanBeCasted() and GetDistance2D(me,target) > 80 then
-			me:CastAbility(item[2],target.position)
+		if item.blink and item.blink:CanBeCasted() and GetDistance2D(me,target) > 100 then
+			me:CastAbility(item.blink,target.position)
 			Sleep(100+me:GetTurnTime(target)*500)
+		end
+		-- ➜ anti-invi
+		if item.dust then
+			-- ➜ dust item
+			if EnemyIsInvi() then
+				if item.dust.state == LuaEntityItem.STATE_READY and item.dust:CanBeCasted() and manapool() then
+					me:CastAbility(item.dust)
+					Sleep(100+me:GetTurnTime(target)*500)
+				end
+			end
+		end
+		-- ➜ Crimson item
+		if item.crimson then
+			if item.crimson.state == LuaEntityItem.STATE_READY and item.crimson:CanBeCasted() and manapool() then
+				me:SafeCastItem("item_crimson_guard")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		-- ➜ Buckler item
+		if item.buckler then
+			if item.buckler.state == LuaEntityItem.STATE_READY and item.buckler:CanBeCasted() and manapool() then
+				me:SafeCastItem("item_buckler")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+		-- ➜ Lotus Orb item
+		if item.lotusorb then
+			if item.lotusorb.state == LuaEntityItem.STATE_READY and item.lotusorb:CanBeCasted() and manapool() then
+				me:CastAbility(item.lotusorb,me)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Check if bkb is active or inactive
-		if codes[3] and item[5] and item[5]:CanBeCasted() then
-			me:SafeCastItem("item_black_king_bar")
-			Sleep(100+me:GetTurnTime(target)*500)
+		if item.blackkingbar and item.blackkingbar:CanBeCasted() then
+			if KeyCode.BlackKingBar then
+				me:SafeCastItem("item_black_king_bar")
+				Sleep(100+me:GetTurnTime(target)*500)
+			else
+				local heroes = entityList:GetEntities(function (v) return v.type==LuaEntity.TYPE_HERO and v.alive and v.visible and v.team~=me.team and me:GetDistance2D(v) <= 1200 end)
+				if #heroes >= 3 then
+					me:SafeCastItem("item_black_king_bar") -- thanks MaZaiPc for this ideia.
+				end
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
 		end
 		-- ➜ Mjolnir item
-		if item[7] then
-			if item[7].state == LuaEntityItem.STATE_READY and item[7]:CanBeCasted() and me.mana > skill[3].manacost then
-				me:CastAbility(item[7],me)
+		if item.mjollnir then
+			if item.mjollnir.state == LuaEntityItem.STATE_READY and item.mjollnir:CanBeCasted() and manapool() then
+				me:CastAbility(item.mjollnir,me)
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
 		end
 		-- ➜ Armlet item
-		if item[3] then
-			if item[3]:CanBeCasted() and not item[1] and SleepCheck("Armlet_use_delay") then
+		if item.armlet then
+			if item.armlet:CanBeCasted() and not item.armletactive and SleepCheck("Armlet_use_delay") then
 				me:SafeCastItem("item_armlet")
 				Sleep(100)
 				Sleep(200,"Armlet_use_delay")
 			end
 		end
 		-- ➜ Madness item
-		if item[10] then
-			if item[10]:CanBeCasted() and me.mana > skill[3].manacost then
+		if item.madness then
+			if item.madness:CanBeCasted() and item.madness.state == LuaEntityItem.STATE_READY and manapool() then
 				me:SafeCastItem("item_mask_of_madness")
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
 		end
 		-- ➜ Abyssal item
-		if item[6] then
-			if item[6].state == LuaEntityItem.STATE_READY and item[6]:CanBeCasted() and me.mana > skill[3].manacost then
+		if item.abyssal then
+			if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() then
 				me:CastItem("item_abyssal_blade",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
 		end
 		-- ➜ Urn of Shadows item
-		if item[11] then
-			if item[11]:CanBeCasted() and me.mana > skill[3].manacost then
+		if item.urn then
+			if item.urn:CanBeCasted() then
 				me:CastItem("item_urn_of_shadows",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
 		end
 		-- ➜ Halberd item
-		if item[8] then
-			if item[8].state == LuaEntityItem.STATE_READY and item[8]:CanBeCasted() and me.mana > skill[3].manacost then
+		if item.halberd then
+			if item.halberd.state == LuaEntityItem.STATE_READY and item.halberd:CanBeCasted() and manapool() then
 				me:CastItem("item_heavens_halberd",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
 		end
+		-- ➜ Solar Crest item
+		if item.solarcrest then
+			if item.solarcrest.state == LuaEntityItem.STATE_READY and item.solarcrest:CanBeCasted() then
+				me:CastItem("item_solar_crest",target)
+				Sleep(100,"duel")
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
 		-- ➜ Medallion of courage item
-		if item[9] then
-			if item[9].state == LuaEntityItem.STATE_READY and item[9]:CanBeCasted() and me.mana > skill[3].manacost then
+		if item.medallion then
+			if item.medallion.state == LuaEntityItem.STATE_READY and item.medallion:CanBeCasted() then
 				me:CastItem("item_medallion_of_courage",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
 		end
 		-- ➜ Blademail item
-		if item[4] then
-			if item[4]:CanBeCasted() and me.mana > skill[3].manacost then
+		if item.blademail then
+			if item.blademail:CanBeCasted() and manapool() then
 				me:SafeCastItem("item_blade_mail")
 				Sleep(100+me:GetTurnTime(target)*600)
 			end
 		end
 		-- ➜ Satanic
-		if item[12] then
-			if item[12].state == LuaEntityItem.STATE_READY and item[12]:CanBeCasted() and me.health < (me.maxHealth * 0.5) and me.mana > skill[3].manacost then
+		if item.satanic then
+			if item.satanic.state == LuaEntityItem.STATE_READY and item.satanic:CanBeCasted() and me.health <= (me.maxHealth * 0.5) and manapool() then
 				me:SafeCastItem("item_satanic")
 				Sleep(100+me:GetTurnTime(target)*600)
 				Sleep(100,"duel")
@@ -370,41 +515,231 @@ function BlinkCombo()
 		end
 		-- ➜ Duel Hability
 		if target.classId == CDOTA_Unit_Hero_Abaddon and target:GetAbility(4).cd > 5 then
-			if SleepCheck("duel") and skill[3]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
-				me:CastAbility(skill[3],target)
-				Sleep(skill[2]:FindCastPoint()*800)
-				Sleep(80,"duelactive")
-				codes[4] = false
+			if SleepCheck("duel") and skill.duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and IsAllCasted() then
+				me:CastAbility(skill.duel,target)
+				Sleep(skill.healbuff:FindCastPoint()*700)
+				KeyCode.CanCombo = false
 			end
 		elseif target.classId ~= CDOTA_Unit_Hero_Abaddon then
-			if SleepCheck("duel") and skill[3]:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") then
-				me:CastAbility(skill[3],target)
-				Sleep(skill[2]:FindCastPoint()*800)
-				Sleep(80,"duelactive")
-				codes[4] = false
+			if SleepCheck("duel") and skill.duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and IsAllCasted() then
+				me:CastAbility(skill.duel,target)
+				Sleep(skill.healbuff:FindCastPoint()*700)
+				KeyCode.CanCombo = false
 			end
 		end
-		codes[4] = false
-		Sleep(200)
-	else
-	    return
 	end
+	KeyCode.CanCombo = false
+	return
 end
 
+-- Anti-invi Function -- Thanks nova for your AutoDustBETA.lua script.
+function EnemyIsInvi()
+	if target and (target:DoesHaveModifier("modifier_bounty_hunter_wind_walk") 
+	or target:DoesHaveModifier("modifier_riki_permanent_invisibility") 
+	or target:DoesHaveModifier("modifier_mirana_moonlight_shadow") 
+    or target:DoesHaveModifier("modifier_treant_natures_guise") 
+	or target:DoesHaveModifier("modifier_weaver_shukuchi") 
+    or target:DoesHaveModifier("modifier_broodmother_spin_web_invisible_applier") 
+    or target:DoesHaveModifier("modifier_item_invisibility_edge_windwalk") 
+    or target:DoesHaveModifier("modifier_rune_invis") 
+    or target:DoesHaveModifier("modifier_clinkz_wind_walk") 
+    or target:DoesHaveModifier("modifier_item_shadow_amulet_fade") 
+    or target:DoesHaveModifier("modifier_item_glimmer_cape_fade")
+    or target:DoesHaveModifier("modifier_item_silver_edge_windwalk")) 
+    and not (target:DoesHaveModifier("modifier_bounty_hunter_track") 
+	or target:DoesHaveModifier("modifier_bloodseeker_thirst_vision") 
+    or target:DoesHaveModifier("modifier_slardar_amplify_damage") 
+    or target:DoesHaveModifier("modifier_item_dustofappearance")
+    or target:DoesHaveModifier("modifier_truesight"))
+	then
+	return true
+	else return false end
+end
+
+
+-- Function IsAllCasted - thanks MaZaiPC - Great Idea
+function IsAllCasted()
+	-- ➜ Madness can be used
+	if item.madness then
+		if item.madness:CanBeCasted() and manapool() and item.madness.state == LuaEntityItem.STATE_READY then
+			return false
+		end
+	end
+	-- ➜ Medallion of courage can be used
+	if item.medallion then
+		if item.medallion.state == LuaEntityItem.STATE_READY and item.medallion:CanBeCasted() then
+			return false
+		end
+	end
+	-- ➜ Solar Crest can be used
+	if item.solarcrest then
+		if item.solarcrest.state == LuaEntityItem.STATE_READY and item.solarcrest:CanBeCasted() then
+			return false
+		end
+	end
+	-- ➜ Halberd can be used
+	if item.halberd then
+		if item.halberd.state == LuaEntityItem.STATE_READY and item.halberd:CanBeCasted() and manapool() then
+			return false
+		end
+	end
+	-- ➜ Satanic can be used
+	if item.satanic then
+		if item.satanic.state == LuaEntityItem.STATE_READY and item.satanic:CanBeCasted() and me.health < (me.maxHealth * 0.5) and manapool() then
+			return false
+		end
+	end
+	-- ➜ Armlet can be used
+	if item.armlet then
+		if item.armlet:CanBeCasted() and not item.armletactive and SleepCheck("Armlet_use_delay") then
+			return false
+		end
+	end
+	-- ➜ Urn of Shadows can be used
+	if item.urn then
+		if item.urn:CanBeCasted() then
+			return false
+		end
+	end
+	-- ➜ Mjolnir can be used
+	if item.mjollnir then
+		if item.mjollnir.state == LuaEntityItem.STATE_READY and item.mjollnir:CanBeCasted() and manapool() then
+			return false
+		end
+	end
+	-- ➜ bkb can be used
+	if KeyCode.BlackKingBar and item.blackkingbar and item.blackkingbar:CanBeCasted() and manapool() then
+		local heroes = entityList:GetEntities(function (v) return v.type==LuaEntity.TYPE_HERO and v.alive and v.visible and v.team~=me.team and me:GetDistance2D(v) <= 1200 end)
+		if #heroes <= 3 then
+			return false
+		end
+	end
+	-- ➜ Blademail can be used
+	if item.blademail then
+		if item.blademail:CanBeCasted() and manapool() then
+			return false
+		end
+	end
+	-- ➜ Abyssal can be used
+	if item.abyssal then
+		if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() then
+			return false
+		end
+	end
+	-- ➜ Dust can be used
+	if item.dust then
+		if item.dust.state == LuaEntityItem.STATE_READY and item.dust:CanBeCasted() and manapool() and EnemyIsInvi() then
+			return false
+		end
+	end
+	-- ➜ Buckler can be used
+	if item.buckler then
+		if item.buckler.state == LuaEntityItem.STATE_READY and item.buckler:CanBeCasted() and manapool() then
+			return false
+		end
+	end
+	-- ➜ crimson can be used
+	if item.crimson then
+		if item.crimson.state == LuaEntityItem.STATE_READY and item.crimson:CanBeCasted() and manapool() then
+			return false
+		end
+	end
+	-- ➜ Lotus Orb can be used
+	if item.lotusorb then
+		if item.lotusorb.state == LuaEntityItem.STATE_READY and item.lotusorb:CanBeCasted() and manapool() then
+			return false
+		end
+	end
+	return true
+end
+
+-- Manapool Function --
+function manapool()
+	local manapool = 0
+	if skill.healbuff then
+		if skill.healbuff.cd < 1 then
+			manapool = manapool + skill.healbuff.manacost
+		end
+	end
+	if skill.duel then
+		manapool = manapool + skill.duel.manacost
+	end
+	if item.blademail then
+		if item.blademail.cd < 1 then   
+			manapool = manapool + item.blademail.manacost
+		end
+	end
+	if item.blackkingbar then
+		if item.blackkingbar.cd < 1 and KeyCode.BlackKingBar then    
+			manapool = manapool + item.blackkingbar.manacost
+		end
+	end
+	if item.abyssal then
+		if item.abyssal.cd < 1 and item.abyssal.state == LuaEntityItem.STATE_READY then    
+			manapool = manapool + item.abyssal.manacost
+		end
+	end
+	if item.mjollnir then
+		if item.mjollnir.cd < 1 and item.mjollnir.state == LuaEntityItem.STATE_READY then    
+			manapool = manapool + item.mjollnir.manacost
+		end
+	end
+	if item.halberd then
+		if item.halberd.cd < 1 and item.halberd.state == LuaEntityItem.STATE_READY then    
+			manapool = manapool + item.halberd.manacost
+		end
+	end
+	if item.madness then
+		if item.madness.cd < 1 and item.madness.state == LuaEntityItem.STATE_READY then    
+			manapool = manapool + item.madness.manacost
+		end
+	end
+	if item.satanic then
+		if item.satanic.cd < 1 and item.satanic.state == LuaEntityItem.STATE_READY then    
+			manapool = manapool + item.satanic.manacost
+		end
+	end
+	if item.dust then
+		if item.dust.cd < 1 and item.dust.state == LuaEntityItem.STATE_READY and EnemyIsInvi() then
+			manapool = manapool + item.dust.manacost
+		end
+	end
+	if item.buckler then
+		if item.buckler.cd < 1 and item.buckler.state == LuaEntityItem.STATE_READY then 
+			manapool = manapool + item.buckler.manacost
+		end
+	end
+	if item.crimson then
+		if item.crimson.cd < 1 and item.crimson.state == LuaEntityItem.STATE_READY then 
+			manapool = manapool + item.crimson.manacost
+		end
+	end
+	if item.lotusorb then
+		if item.lotusorb.cd < 1 and item.lotusorb.state == LuaEntityItem.STATE_READY then    
+			manapool = manapool + item.lotusorb.manacost
+		end
+	end
+	if me.mana >= manapool then
+		return true
+	else
+		return false
+	end
+end
 
 -- ✖ END OF GAME  ✖ --
 function onClose()
 	collectgarbage("collect")
-	if codes[5] then
-	    statusText.visible = false
-		ikillyou.visible = false
-		bkb1.visible  = false
-		bkb2.visible  = false
-		blink.visible = false
+	if registered then
+		MyTarget.visible          = false
+		BlinkBackGround.visible   = false
+		BlinkTexture.visible      = false
+		manapooltxt.visible       = false
 		script:UnregisterEvent(Main)
 		script:UnregisterEvent(Key)
-		codes[5] = false
+		registered = false
+		return
 	end
 end
+
 script:RegisterEvent(EVENT_CLOSE,onClose)
 script:RegisterEvent(EVENT_TICK,onLoad)
