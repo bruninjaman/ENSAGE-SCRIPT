@@ -47,7 +47,7 @@ function Main(tick)
 	local enemies = entityList:GetEntities({type=LuaEntity.TYPE_HERO, alive=true, visible = true, team=me:GetEnemyTeam()})
 	if me.alive and not me:IsChanneling() then
 		for i,enemy in ipairs(enemies) do
-			if enemy and enemy.health <= urnHP and me:FindItem("item_urn_of_shadows") and GetDistance2D(me,enemy) < 950 and enemy.visible and enemy.alive and not me:IsChanneling() and not enemy:IsPhysDmgImmune() and not enemy:IsIllusion() then
+			if enemy and enemy.health <= urnHP and me:FindItem("item_urn_of_shadows") and GetDistance2D(me,enemy) < 950 and enemy.visible and enemy.alive and not me:IsChanneling() and not enemy:IsIllusion() then
 				if me:FindItem("item_urn_of_shadows") and me:FindItem("item_urn_of_shadows"):CanBeCasted() then
 					me:CastItem("item_urn_of_shadows",enemy)
 					Sleep(100+me:GetTurnTime(enemy)*500)
