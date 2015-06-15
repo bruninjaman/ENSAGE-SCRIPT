@@ -1,4 +1,4 @@
---<<Legion commander V1.1C ✰ - by ☢bruninjaman☢>>--
+--<<Legion commander V1.1D ✰ - by ☢bruninjaman☢>>--
 --[[
 ☑ Reworked version.
 ☑ Some new functions and more performance.
@@ -9,6 +9,9 @@
 ☑ Show if enemy is on blink dagger range and your target.
 ********************************************************************************
 ♜ Change Log ♜
+➩ V1.1D - Sunday, June 14, 2015 - Fixed Halberd(don't work in duel) - Added new sistem to remove linkens.
+    -> removed auto cast abyssal if is using blademail, unless if target is magic imunne.
+	-> fixed always use 'press the attack' when you can.
 ➩ V1.1C - Thursday, June 4, 2015 - Reworked script again - trying to remove fps drops problem. You know when you is out of mana for full combo.
 	-> Added (Solar Crest, Dust, Mango, Arcane, Buckler, Crimson, Lotus Orb and Silver Edge)
 	-> Reworked Mana Calculation(With all itens)
@@ -203,9 +206,51 @@ function Main()
 	if (skill.duel).level > 0 and target and target.visible and target.alive and me.alive and GetDistance2D(me,target) < 1200 and SleepCheck("DelayCombo") and KeyCode.CanCombo then
 		Sleep(300,"DelayCombo")
 		manacheck()
+		breaklinkens()
 		BlinkCombo()
 	end
 end
+
+
+-- Break Linkens function --
+function breaklinkens()
+	if target and target:IsLinkensProtected() then
+		if item.cyclone then
+			if item.cyclone.state == LuaEntityItem.STATE_READY and item.cyclone:CanBeCasted() then
+				me:CastItem("item_cyclone",target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		elseif item.force then
+			if item.force.state == LuaEntityItem.STATE_READY and item.force:CanBeCasted() then
+				me:CastItem("item_force_staff",target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		elseif item.halberd then
+			if item.halberd.state == LuaEntityItem.STATE_READY and item.halberd:CanBeCasted() then
+				me:CastItem("item_heavens_halberd",target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		elseif item.vyse then
+			if item.vyse.state == LuaEntityItem.STATE_READY and item.vyse:CanBeCasted() then
+				me:CastItem("item_sheepstick",target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		elseif item.abyssal then
+			if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() then
+				me:CastItem("item_abyssal_blade",target)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		else
+			-- ➜ Blink dagger
+			if item.blink and item.blink:CanBeCasted() and GetDistance2D(me,target) > 100 then
+				me:CastAbility(item.blink,target.position)
+				Sleep(100+me:GetTurnTime(target)*500)
+			end
+		end
+	end
+	return
+end
+
 
 -- Marked for death text Function --
 function markedfordeath()
@@ -287,6 +332,12 @@ function FindItems(me)
         return me:FindItem("item_magic_wand")
       elseif key == "soulring" then
         return me:FindItem("item_soul_ring")
+	  elseif key == "force" then
+        return me:FindItem("item_force_staff")
+	  elseif key == "cyclone" then
+        return me:FindItem("item_cyclone")
+	  elseif key == "vyse" then
+        return me:FindItem("item_sheepstick")
       else
         return item[key]
       end
@@ -460,7 +511,7 @@ function BlinkCombo()
 		end
 		-- ➜ Abyssal item
 		if item.abyssal then
-			if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() then
+			if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() and not me:DoesHaveModifier("modifier_item_blade_mail_reflect") or target:IsMagicDmgImmune() then
 				me:CastItem("item_abyssal_blade",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
@@ -470,14 +521,6 @@ function BlinkCombo()
 		if item.urn then
 			if item.urn:CanBeCasted() then
 				me:CastItem("item_urn_of_shadows",target)
-				Sleep(100,"duel")
-				Sleep(100+me:GetTurnTime(target)*500)
-			end
-		end
-		-- ➜ Halberd item
-		if item.halberd then
-			if item.halberd.state == LuaEntityItem.STATE_READY and item.halberd:CanBeCasted() and manapool() then
-				me:CastItem("item_heavens_halberd",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
@@ -559,6 +602,12 @@ end
 
 -- Function IsAllCasted - thanks MaZaiPC - Great Idea
 function IsAllCasted()
+	-- ➜ healbuff can be used
+	if skill.healbuff.level > 0 then
+		if skill.healbuff:CanBeCasted() and manapool() then
+			return false
+		end
+	end
 	-- ➜ Madness can be used
 	if item.madness then
 		if item.madness:CanBeCasted() and manapool() and item.madness.state == LuaEntityItem.STATE_READY then
@@ -574,12 +623,6 @@ function IsAllCasted()
 	-- ➜ Solar Crest can be used
 	if item.solarcrest then
 		if item.solarcrest.state == LuaEntityItem.STATE_READY and item.solarcrest:CanBeCasted() then
-			return false
-		end
-	end
-	-- ➜ Halberd can be used
-	if item.halberd then
-		if item.halberd.state == LuaEntityItem.STATE_READY and item.halberd:CanBeCasted() and manapool() then
 			return false
 		end
 	end
@@ -622,7 +665,7 @@ function IsAllCasted()
 	end
 	-- ➜ Abyssal can be used
 	if item.abyssal then
-		if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() then
+		if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() and not me:DoesHaveModifier("modifier_item_blade_mail_reflect") or target:IsMagicDmgImmune() then
 			return false
 		end
 	end
@@ -675,18 +718,13 @@ function manapool()
 		end
 	end
 	if item.abyssal then
-		if item.abyssal.cd < 1 and item.abyssal.state == LuaEntityItem.STATE_READY then    
+		if item.abyssal.cd < 1 and item.abyssal.state == LuaEntityItem.STATE_READY and not me:DoesHaveModifier("modifier_item_blade_mail_reflect") or target:IsMagicDmgImmune() then    
 			manapool = manapool + item.abyssal.manacost
 		end
 	end
 	if item.mjollnir then
 		if item.mjollnir.cd < 1 and item.mjollnir.state == LuaEntityItem.STATE_READY then    
 			manapool = manapool + item.mjollnir.manacost
-		end
-	end
-	if item.halberd then
-		if item.halberd.cd < 1 and item.halberd.state == LuaEntityItem.STATE_READY then    
-			manapool = manapool + item.halberd.manacost
 		end
 	end
 	if item.madness then
