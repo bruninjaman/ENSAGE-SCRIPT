@@ -12,6 +12,7 @@
 ➩ V1.1D - Sunday, June 14, 2015 - Fixed Halberd(don't work in duel) - Added new sistem to remove linkens.
     -> removed auto cast abyssal if is using blademail, unless if target is magic imunne.
 	-> fixed always use 'press the attack' when you can.
+	-> fixed bugs if enemy is using bkb
 ➩ V1.1C - Thursday, June 4, 2015 - Reworked script again - trying to remove fps drops problem. You know when you is out of mana for full combo.
 	-> Added (Solar Crest, Dust, Mango, Arcane, Buckler, Crimson, Lotus Orb and Silver Edge)
 	-> Reworked Mana Calculation(With all itens)
@@ -215,27 +216,27 @@ end
 -- Break Linkens function --
 function breaklinkens()
 	if target and target:IsLinkensProtected() then
-		if item.cyclone then
+		if item.cyclone and item.cyclone:CanBeCasted() then
 			if item.cyclone.state == LuaEntityItem.STATE_READY and item.cyclone:CanBeCasted() then
 				me:CastItem("item_cyclone",target)
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
-		elseif item.force then
+		elseif item.force and item.force:CanBeCasted() then
 			if item.force.state == LuaEntityItem.STATE_READY and item.force:CanBeCasted() then
 				me:CastItem("item_force_staff",target)
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
-		elseif item.halberd then
+		elseif item.halberd and item.halberd:CanBeCasted() then
 			if item.halberd.state == LuaEntityItem.STATE_READY and item.halberd:CanBeCasted() then
 				me:CastItem("item_heavens_halberd",target)
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
-		elseif item.vyse then
+		elseif item.vyse and item.vyse:CanBeCasted() then
 			if item.vyse.state == LuaEntityItem.STATE_READY and item.vyse:CanBeCasted() then
 				me:CastItem("item_sheepstick",target)
 				Sleep(100+me:GetTurnTime(target)*500)
 			end
-		elseif item.abyssal then
+		elseif item.abyssal and item.abyssal:CanBeCasted() then
 			if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() then
 				me:CastItem("item_abyssal_blade",target)
 				Sleep(100+me:GetTurnTime(target)*500)
@@ -511,7 +512,7 @@ function BlinkCombo()
 		end
 		-- ➜ Abyssal item
 		if item.abyssal then
-			if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() and not me:DoesHaveModifier("modifier_item_blade_mail_reflect") or target:IsMagicDmgImmune() then
+			if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() and (not me:DoesHaveModifier("modifier_item_blade_mail_reflect") or target:IsMagicDmgImmune()) then
 				me:CastItem("item_abyssal_blade",target)
 				Sleep(100,"duel")
 				Sleep(100+me:GetTurnTime(target)*500)
@@ -556,6 +557,7 @@ function BlinkCombo()
 				Sleep(100,"duel")
 			end
 		end
+		print (IsAllCasted())
 		-- ➜ Duel Hability
 		if target.classId == CDOTA_Unit_Hero_Abaddon and target:GetAbility(4).cd > 5 then
 			if SleepCheck("duel") and skill.duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and IsAllCasted() then
@@ -640,7 +642,7 @@ function IsAllCasted()
 	end
 	-- ➜ Urn of Shadows can be used
 	if item.urn then
-		if item.urn:CanBeCasted() then
+		if item.urn:CanBeCasted() and not target:IsMagicDmgImmune() then
 			return false
 		end
 	end
@@ -665,7 +667,7 @@ function IsAllCasted()
 	end
 	-- ➜ Abyssal can be used
 	if item.abyssal then
-		if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() and not me:DoesHaveModifier("modifier_item_blade_mail_reflect") or target:IsMagicDmgImmune() then
+		if item.abyssal.state == LuaEntityItem.STATE_READY and item.abyssal:CanBeCasted() and manapool() and (not me:DoesHaveModifier("modifier_item_blade_mail_reflect") or target:IsMagicDmgImmune()) then
 			return false
 		end
 	end
