@@ -557,7 +557,6 @@ function BlinkCombo()
 				Sleep(100,"duel")
 			end
 		end
-		print (IsAllCasted())
 		-- ➜ Duel Hability
 		if target.classId == CDOTA_Unit_Hero_Abaddon and target:GetAbility(4).cd > 5 then
 			if SleepCheck("duel") and skill.duel:CanBeCasted() and not target:IsLinkensProtected() and not target:IsPhysDmgImmune() and not target:DoesHaveModifier("modifier_abaddon_borrowed_time") and IsAllCasted() then
